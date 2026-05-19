@@ -1,136 +1,949 @@
-<p style="text-align:center;margin-bottom:6px">
-  <span style="background:#1c2840;color:#00c8a0;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:3px 14px;border-radius:4px">PATCH NOTE · MAY 28, 2026</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 PCSEA Patch Note Editor</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b14;--bg2:#0d111e;--bg3:#111827;
+  --border:#1c2840;--accent:#00c8a0;--gold:#f0c040;
+  --red:#ff4455;--text:#ccd6f0;--muted:#8898b8;--white:#eef2ff;
+}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── Header ── */
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:48px;background:#0a0e1a;border-bottom:1px solid var(--border);flex-shrink:0}
+.app-title{font-weight:700;font-size:15px;color:var(--accent);letter-spacing:.5px}
+.header-actions{display:flex;gap:8px}
+.btn-primary{padding:7px 18px;border-radius:6px;background:var(--accent);color:#060810;border:none;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.3px;transition:opacity .15s}
+.btn-primary:hover{opacity:.85}
+.btn-secondary{padding:7px 14px;border-radius:6px;background:transparent;color:var(--accent);border:1px solid rgba(0,200,160,.4);font-weight:600;font-size:13px;cursor:pointer;transition:background .15s}
+.btn-secondary:hover{background:rgba(0,200,160,.1)}
+
+/* ── Body ── */
+.app-body{display:flex;flex:1;overflow:hidden}
+
+/* ── Editor Panel ── */
+.editor-panel{width:430px;min-width:380px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+
+/* ── Preview Panel ── */
+.preview-panel{flex:1;overflow-y:auto;background:#12151e}
+.preview-bar{position:sticky;top:0;z-index:10;padding:7px 16px;background:#0e1120;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1.2px;display:flex;align-items:center;gap:7px}
+.preview-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.preview-content{padding:20px 24px}
+
+/* ── Section Cards ── */
+.sec-card{border-bottom:1px solid var(--border)}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;user-select:none;transition:background .1s}
+.sec-head:hover{background:rgba(255,255,255,.03)}
+.sec-head-left{display:flex;align-items:center;gap:8px}
+.sec-icon{font-size:14px}
+.sec-name{font-weight:600;font-size:13px;color:var(--white)}
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px}
+.badge-on{background:rgba(0,200,160,.15);color:var(--accent)}
+.badge-off{background:rgba(255,68,85,.1);color:var(--red)}
+.chev{color:var(--muted);font-size:10px;transition:transform .2s}
+.chev.open{transform:rotate(180deg)}
+.sec-body{padding:12px 16px 16px;display:none}
+.sec-body.open{display:block}
+
+/* ── Form ── */
+.field{margin-bottom:11px}
+.frow{display:flex;gap:9px;margin-bottom:11px}
+.frow .field{flex:1;margin-bottom:0}
+label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;margin-bottom:4px}
+input[type=text],input[type=date],input[type=url],input[type=number],select,textarea{
+  width:100%;padding:7px 9px;background:#0a0d16;border:1px solid var(--border);
+  color:var(--text);border-radius:5px;font-size:12px;font-family:inherit;outline:none;
+  transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:64px;line-height:1.55}
+
+/* ── Toggle switch ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.toggle-label{font-size:12px;color:var(--text)}
+.sw{position:relative;width:36px;height:19px}
+.sw input{opacity:0;width:0;height:0}
+.sl{position:absolute;inset:0;border-radius:20px;background:#1c2840;cursor:pointer;transition:background .2s}
+.sl::before{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:#8898b8;left:3px;top:3px;transition:transform .2s,background .2s}
+.sw input:checked+.sl{background:rgba(0,200,160,.3)}
+.sw input:checked+.sl::before{transform:translateX(17px);background:var(--accent)}
+
+/* ── Dynamic tables ── */
+.dyn-tbl{width:100%;border-collapse:collapse;margin-bottom:6px}
+.dyn-tbl th{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px;padding:3px 5px;text-align:left}
+.dyn-tbl td{padding:3px 3px;vertical-align:middle}
+.dyn-tbl input,.dyn-tbl select{padding:5px 7px;font-size:11px}
+.btn-del{padding:4px 8px;border-radius:4px;background:rgba(255,68,85,.13);color:var(--red);border:none;cursor:pointer;font-size:11px;transition:background .15s}
+.btn-del:hover{background:rgba(255,68,85,.28)}
+.btn-add{width:100%;padding:6px 10px;border-radius:5px;background:rgba(0,200,160,.08);color:var(--accent);border:1px solid rgba(0,200,160,.28);cursor:pointer;font-size:11px;font-weight:700;margin-top:3px;transition:background .15s}
+.btn-add:hover{background:rgba(0,200,160,.18)}
+
+/* ── Sub-headers ── */
+.sub-hdr{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;padding:7px 0 5px;margin-bottom:7px;border-bottom:1px solid rgba(240,192,64,.18)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.check-grp{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.check-grp label{display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text)}
+.check-grp input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:pointer}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--accent);color:#060810;padding:9px 18px;border-radius:7px;font-weight:700;font-size:12px;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── Info chip ── */
+.info-chip{background:rgba(0,200,160,.07);border:1px solid rgba(0,200,160,.22);border-radius:6px;padding:9px 11px;margin-bottom:13px;font-size:11px;color:var(--muted);line-height:1.6}
+.info-chip strong{color:var(--accent)}
+
+/* ── Pkg block ── */
+.pkg-block{border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:9px}
+.pkg-block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1c2840;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#2a3850}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ HEADER ═══ -->
+<header class="app-header">
+  <div class="app-title">🎮 PCSEA Patch Note Editor</div>
+  <div class="header-actions">
+    <button class="btn-secondary" onclick="updatePreview()">🔄 Refresh</button>
+    <button class="btn-primary" onclick="copyForumHTML()">📋 Copy Forum HTML</button>
+  </div>
+</header>
+
+<!-- ═══ BODY ═══ -->
+<div class="app-body">
+
+<!-- ─── LEFT: EDITOR ─── -->
+<div class="editor-panel">
+
+  <!-- 1. Title & Hero -->
+  <div class="sec-card" id="s1">
+    <div class="sec-head" onclick="toggleSec('s1')">
+      <div class="sec-head-left"><span class="sec-icon">🏷️</span><span class="sec-name">Title &amp; Hero</span></div>
+      <span class="chev open" id="s1c">▼</span>
+    </div>
+    <div class="sec-body open" id="s1b">
+      <div class="frow">
+        <div class="field"><label>Date Label</label><input type="text" id="f_dlabel" value="MAY 28, 2026" oninput="sched()"></div>
+        <div class="field"><label>MA Date</label><input type="date" id="f_madate" value="2026-05-28" oninput="onMADate()"></div>
+      </div>
+      <div class="field"><label>Patch Note Title</label><input type="text" id="f_title" value="UPDATE: Hot Summer in Cabal World!" oninput="sched()"></div>
+      <div class="field"><label>Tagline</label><input type="text" id="f_tagline" value="— Blazing adventures await you —" oninput="sched()"></div>
+      <div class="frow">
+        <div class="field"><label>MA Start Time</label><input type="text" id="f_mastart" value="10:00 AM" oninput="sched()"></div>
+        <div class="field"><label>MA End Time</label><input type="text" id="f_maend" value="06:00 PM" oninput="sched()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Quick Summary -->
+  <div class="sec-card" id="s2">
+    <div class="sec-head" onclick="toggleSec('s2')">
+      <div class="sec-head-left"><span class="sec-icon">📋</span><span class="sec-name">Quick Summary (TL;DR)</span></div>
+      <span class="chev" id="s2c">▼</span>
+    </div>
+    <div class="sec-body" id="s2b">
+      <div id="tldr-wrap"></div>
+      <button class="btn-add" onclick="addTldr()">+ Add Row</button>
+    </div>
+  </div>
+
+  <!-- 3. Service Outage -->
+  <div class="sec-card" id="s3">
+    <div class="sec-head" onclick="toggleSec('s3')">
+      <div class="sec-head-left"><span class="sec-icon">🔧</span><span class="sec-name">Service Outage</span></div>
+      <span class="chev" id="s3c">▼</span>
+    </div>
+    <div class="sec-body" id="s3b">
+      <div class="sub-hdr">🎁 Compensation Items</div>
+      <table class="dyn-tbl">
+        <thead><tr><th>Item Name</th><th>Duration</th><th>QTY</th><th>Style</th><th></th></tr></thead>
+        <tbody id="comp-body"></tbody>
+      </table>
+      <button class="btn-add" onclick="addComp()">+ Add Item</button>
+      <div class="divider"></div>
+      <div class="field"><label>Claim Note</label><input type="text" id="f_compnote" value="Items will be automatically sent to your in-game mailbox." oninput="sched()"></div>
+    </div>
+  </div>
+
+  <!-- 4. New Dungeon -->
+  <div class="sec-card" id="s4">
+    <div class="sec-head" onclick="toggleSec('s4')">
+      <div class="sec-head-left"><span class="sec-icon">🏰</span><span class="sec-name">New Dungeon</span><span class="badge badge-on" id="s4bg">ON</span></div>
+      <span class="chev" id="s4c">▼</span>
+    </div>
+    <div class="sec-body" id="s4b">
+      <div class="toggle-row"><span class="toggle-label">Include Dungeon Section</span>
+        <label class="sw"><input type="checkbox" id="f_showdun" checked onchange="setBadge('s4bg','f_showdun');sched()"><span class="sl"></span></label>
+      </div>
+      <div class="field"><label>🖼️ Header Image URL</label><input type="url" id="f_dheaderimg" placeholder="https://… (แสดงเหนือหัวข้อ dungeon)" oninput="sched()"></div>
+      <div class="frow">
+        <div class="field"><label>Dungeon Name</label><input type="text" id="f_dname" value="Celestia" oninput="sched()"></div>
+        <div class="field"><label>Type</label><input type="text" id="f_dtype" value="Cross-server" oninput="sched()"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Level Required</label><input type="text" id="f_dlevel" value="200+ Recommended" oninput="sched()"></div>
+        <div class="field"><label>Entry Key</label><input type="text" id="f_dkey" value="Celestia Entry Key" oninput="sched()"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Party Size</label><input type="text" id="f_dparty" value="4" oninput="sched()"></div>
+        <div class="field"><label>Cooldown</label><input type="text" id="f_dcool" value="24 Hours" oninput="sched()"></div>
+      </div>
+      <div class="field"><label>Location</label><input type="text" id="f_dloc" value="Port Lux → Warp Portal" oninput="sched()"></div>
+      <div class="divider"></div>
+      <div class="sub-hdr">🖼️ Image URLs</div>
+      <div class="field"><label>Map Image URL</label><input type="url" id="f_dmap" placeholder="https://..." oninput="sched()"></div>
+      <div class="field"><label>Boss Image URL</label><input type="url" id="f_dbossimg" placeholder="https://..." oninput="sched()"></div>
+      <div class="field"><label>NPC Image URL</label><input type="url" id="f_dnpcimg" placeholder="https://..." oninput="sched()"></div>
+      <div class="divider"></div>
+      <div class="sub-hdr">☠️ Boss Monster</div>
+      <div class="field"><label>Boss Name</label><input type="text" id="f_dbossname" value="Fallen Celestial" oninput="sched()"></div>
+      <div class="field"><label>Boss Description</label><textarea id="f_dbossdesc" oninput="sched()">Ancient guardian of the Celestial realm, now corrupted by dark energy. Defeat it to claim rare materials.</textarea></div>
+      <div class="divider"></div>
+      <div class="sub-hdr">🧑 NPC</div>
+      <div class="frow">
+        <div class="field"><label>NPC Name</label><input type="text" id="f_dnpcname" value="Celestia Manager" oninput="sched()"></div>
+        <div class="field"><label>Position</label><input type="text" id="f_dnpcpos" value="Port Lux (341, 340)" oninput="sched()"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="sub-hdr">⚗️ Craft Recipe</div>
+      <div class="field"><label>Result Item</label><input type="text" id="f_dresult" value="Celestia Core Fragment" oninput="sched()"></div>
+      <div class="field"><label>Result Description</label><input type="text" id="f_dresdesc" value="Key material for crafting Celestial equipment" oninput="sched()"></div>
+      <table class="dyn-tbl">
+        <thead><tr><th>Ingredient</th><th>QTY</th><th></th></tr></thead>
+        <tbody id="recipe-body"></tbody>
+      </table>
+      <button class="btn-add" onclick="addRecipe()">+ Add Ingredient</button>
+    </div>
+  </div>
+
+  <!-- 5. Cash Shop -->
+  <div class="sec-card" id="s5">
+    <div class="sec-head" onclick="toggleSec('s5')">
+      <div class="sec-head-left"><span class="sec-icon">🛒</span><span class="sec-name">Cash Shop</span><span class="badge badge-on" id="s5bg">ON</span></div>
+      <span class="chev" id="s5c">▼</span>
+    </div>
+    <div class="sec-body" id="s5b">
+      <div class="toggle-row"><span class="toggle-label">Include Cash Shop Section</span>
+        <label class="sw"><input type="checkbox" id="f_showcash" checked onchange="setBadge('s5bg','f_showcash');sched()"><span class="sl"></span></label>
+      </div>
+      <div class="field"><label>Section Title (Event Name)</label><input type="text" id="f_cashtitle" value="🔥 New Update Items — Hot Summer in Cabal World!" oninput="sched()"></div>
+      <div class="sub-hdr">🎁 Event Items</div>
+      <table class="dyn-tbl">
+        <thead><tr><th>Item</th><th>Duration</th><th>Amt</th><th>Trade</th><th>Limit</th><th>FG</th><th></th></tr></thead>
+        <tbody id="cash-body"></tbody>
+      </table>
+      <button class="btn-add" onclick="addCash()">+ Add Item</button>
+      <div class="divider"></div>
+      <div class="sub-hdr">📦 Special Packages</div>
+      <div id="pkgs-wrap"></div>
+      <button class="btn-add" onclick="addPkg()">+ Add Package</button>
+    </div>
+  </div>
+
+  <!-- 6. In-Game Event -->
+  <div class="sec-card" id="s6">
+    <div class="sec-head" onclick="toggleSec('s6')">
+      <div class="sec-head-left"><span class="sec-icon">🎮</span><span class="sec-name">In-Game Event</span><span class="badge badge-off" id="s6bg">OFF</span></div>
+      <span class="chev" id="s6c">▼</span>
+    </div>
+    <div class="sec-body" id="s6b">
+      <div class="toggle-row"><span class="toggle-label">Include In-Game Event</span>
+        <label class="sw"><input type="checkbox" id="f_showev" onchange="setBadge('s6bg','f_showev');sched()"><span class="sl"></span></label>
+      </div>
+      <div class="field"><label>🖼️ Header Image URL</label><input type="url" id="f_evheaderimg" placeholder="https://… (แสดงเหนือหัวข้อ event)" oninput="sched()"></div>
+      <div class="field"><label>Event Name</label><input type="text" id="f_evname" placeholder="e.g., Summer Login Event" oninput="sched()"></div>
+      <div class="field"><label>Event Period</label><input type="text" id="f_evdates" placeholder="e.g., 28 May – 25 Jun 2026" oninput="sched()"></div>
+      <div class="field"><label>Description</label><textarea id="f_evdesc" placeholder="Describe the event..." oninput="sched()"></textarea></div>
+      <div class="field"><label>Link (optional)</label><input type="url" id="f_evlink" placeholder="https://..." oninput="sched()"></div>
+    </div>
+  </div>
+
+  <!-- 7. Promotion -->
+  <div class="sec-card" id="s7">
+    <div class="sec-head" onclick="toggleSec('s7')">
+      <div class="sec-head-left"><span class="sec-icon">🎉</span><span class="sec-name">Promotion</span><span class="badge badge-off" id="s7bg">OFF</span></div>
+      <span class="chev" id="s7c">▼</span>
+    </div>
+    <div class="sec-body" id="s7b">
+      <div class="toggle-row"><span class="toggle-label">Include Promotion</span>
+        <label class="sw"><input type="checkbox" id="f_showpromo" onchange="setBadge('s7bg','f_showpromo');sched()"><span class="sl"></span></label>
+      </div>
+      <div class="field"><label>🖼️ Header Image URL</label><input type="url" id="f_promoheaderimg" placeholder="https://… (แสดงเหนือหัวข้อ promotion)" oninput="sched()"></div>
+      <div class="field"><label>Promotion Title</label><input type="text" id="f_promotitle" placeholder="e.g., Double EXP Weekend" oninput="sched()"></div>
+      <div class="field"><label>Description</label><textarea id="f_promodesc" placeholder="Describe the promotion..." oninput="sched()"></textarea></div>
+      <div class="field"><label>Highlight Note</label><input type="text" id="f_promohighlight" placeholder="e.g., Limited time only!" oninput="sched()"></div>
+      <div class="field"><label>Link (optional)</label><input type="url" id="f_promolink" placeholder="https://..." oninput="sched()"></div>
+      <div class="divider"></div>
+      <div class="sub-hdr">🏪 Shop Banners</div>
+      <div class="check-grp">
+        <label><input type="checkbox" id="f_bmain" checked onchange="sched()"><span>Main Shop</span></label>
+        <label><input type="checkbox" id="f_bbonus" checked onchange="sched()"><span>Bonus Shop</span></label>
+        <label><input type="checkbox" id="f_bcel" checked onchange="sched()"><span>Celestial</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Dev Note -->
+  <div class="sec-card" id="s8">
+    <div class="sec-head" onclick="toggleSec('s8')">
+      <div class="sec-head-left"><span class="sec-icon">📝</span><span class="sec-name">Dev Note</span></div>
+      <span class="chev" id="s8c">▼</span>
+    </div>
+    <div class="sec-body" id="s8b">
+      <div class="info-chip">
+        <strong>Dev Note #1</strong> is auto-generated from the MA Date above.<br>
+        Cutoff = <strong id="cutoff-display">—</strong> 01:00 PM (GMT+8)
+      </div>
+      <div class="sub-hdr">➕ Additional Dev Notes</div>
+      <div id="devnote-wrap"></div>
+      <button class="btn-add" onclick="addDevNote()">+ Add Dev Note</button>
+      <div class="divider"></div>
+      <div class="sub-hdr">🎁 Giftbox Items (optional)</div>
+      <div id="giftbox-wrap"></div>
+      <button class="btn-add" onclick="addGiftbox()">+ Add Giftbox Item</button>
+    </div>
+  </div>
+
+</div><!-- end editor-panel -->
+
+<!-- ─── RIGHT: PREVIEW ─── -->
+<div class="preview-panel">
+  <div class="preview-bar"><div class="preview-dot"></div>LIVE PREVIEW</div>
+  <div class="preview-content">
+    <div id="preview-out" style="max-width:780px;margin:0 auto;"></div>
+  </div>
+</div>
+
+</div><!-- end app-body -->
+</div><!-- end app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const v = id => { const e=$(id); return e ? e.value.trim() : ''; };
+const chk = id => { const e=$(id); return e ? e.checked : false; };
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function nl2br(s){ return esc(s).replace(/\n/g,'<br>'); }
+
+// Debounce preview
+let _timer = null;
+function sched(){ clearTimeout(_timer); _timer = setTimeout(updatePreview, 220); }
+
+// Section toggle
+function toggleSec(id){
+  $(`${id}b`).classList.toggle('open');
+  $(`${id}c`).classList.toggle('open');
+}
+
+// Section ON/OFF badge
+function setBadge(badgeId, checkId){
+  const on = $(checkId).checked;
+  const b = $(badgeId);
+  b.textContent = on ? 'ON' : 'OFF';
+  b.className = 'badge ' + (on ? 'badge-on' : 'badge-off');
+}
+
+// Toast
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════
+// DATE UTILS
+// ═══════════════════════════════════════════════════
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function getMondayOf(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return d;
+}
+function fmtFull(d){ return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function fmtDay(d){ return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+
+function onMADate(){
+  const ds = v('f_madate');
+  if(ds){ const mon = getMondayOf(ds); $('cutoff-display').textContent = fmtFull(mon); }
+  sched();
+}
+
+// ═══════════════════════════════════════════════════
+// DYNAMIC ROWS
+// ═══════════════════════════════════════════════════
+let _tldr=0, _comp=0, _recipe=0, _cash=0, _pkg=0, _dn=0, _gb=0;
+const _pkgItem = {};
+
+function addTldr(k='',val=''){
+  const id = ++_tldr;
+  const w=$('tldr-wrap');
+  const d=document.createElement('div');
+  d.id='tr'+id;
+  d.style.cssText='display:flex;gap:5px;margin-bottom:5px;align-items:center';
+  d.innerHTML=`<input type="text" value="${esc(k)}" placeholder="🔧 Key" style="width:36%" oninput="sched()">
+<input type="text" value="${esc(val)}" placeholder="Value…" style="flex:1" oninput="sched()">
+<button class="btn-del" onclick="$('tr${id}').remove();sched()">✕</button>`;
+  w.appendChild(d);
+}
+
+function addComp(item='',dur='Permanent',qty='1',special=false){
+  const id=++_comp;
+  const tb=$('comp-body');
+  const tr=document.createElement('tr'); tr.id='cr'+id;
+  tr.innerHTML=`<td><input type="text" value="${esc(item)}" placeholder="Item name" oninput="sched()"></td>
+<td><input type="text" value="${esc(dur)}" style="width:76px" oninput="sched()"></td>
+<td><input type="number" value="${qty}" style="width:44px" oninput="sched()"></td>
+<td><select onchange="sched()" style="width:64px"><option value="g" ${!special?'selected':''}>Green</option><option value="s" ${special?'selected':''}>Gold</option></select></td>
+<td><button class="btn-del" onclick="$('cr${id}').remove();sched()">✕</button></td>`;
+  tb.appendChild(tr);
+}
+
+function addRecipe(item='',qty='1'){
+  const id=++_recipe;
+  const tb=$('recipe-body');
+  const tr=document.createElement('tr'); tr.id='rr'+id;
+  tr.innerHTML=`<td><input type="text" value="${esc(item)}" placeholder="Ingredient" oninput="sched()"></td>
+<td><input type="number" value="${qty}" style="width:52px" oninput="sched()"></td>
+<td><button class="btn-del" onclick="$('rr${id}').remove();sched()">✕</button></td>`;
+  tb.appendChild(tr);
+}
+
+function addCash(item='',dur='Permanent',amt='1',trade='yes',limit='-',fg='0'){
+  const id=++_cash;
+  const tb=$('cash-body');
+  const tr=document.createElement('tr'); tr.id='ca'+id;
+  tr.innerHTML=`<td><input type="text" value="${esc(item)}" placeholder="Item name" style="min-width:90px" oninput="sched()"></td>
+<td><input type="text" value="${esc(dur)}" style="width:74px" oninput="sched()"></td>
+<td><input type="number" value="${amt}" style="width:40px" oninput="sched()"></td>
+<td><select onchange="sched()" style="width:52px"><option value="yes" ${trade==='yes'?'selected':''}>Yes</option><option value="no" ${trade==='no'?'selected':''}>No</option></select></td>
+<td><input type="text" value="${esc(limit)}" style="width:40px" oninput="sched()"></td>
+<td><input type="number" value="${fg}" style="width:52px" oninput="sched()"></td>
+<td><button class="btn-del" onclick="$('ca${id}').remove();sched()">✕</button></td>`;
+  tb.appendChild(tr);
+}
+
+function addPkg(){
+  const id=++_pkg;
+  _pkgItem[id]=0;
+  const w=$('pkgs-wrap');
+  const d=document.createElement('div'); d.id='pk'+id; d.className='pkg-block';
+  d.innerHTML=`<div class="pkg-block-head">
+  <span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px">Package</span>
+  <button class="btn-del" onclick="$('pk${id}').remove();sched()">Remove</button>
+</div>
+<div style="display:flex;gap:7px;margin-bottom:7px">
+  <div style="flex:1"><label>Name</label><input type="text" placeholder="Package name" oninput="sched()" id="pn${id}"></div>
+  <div><label>Price (FG)</label><input type="number" value="0" style="width:70px" oninput="sched()" id="pp${id}"></div>
+  <div><label>Limit</label><input type="text" value="-" style="width:50px" oninput="sched()" id="pl${id}"></div>
+</div>
+<table class="dyn-tbl"><thead><tr><th>Item</th><th>Duration</th><th>Qty</th><th>Trade</th><th></th></tr></thead>
+<tbody id="pi${id}"></tbody></table>
+<button class="btn-add" onclick="addPkgItem(${id})" style="margin-top:3px">+ Add Item</button>`;
+  w.appendChild(d);
+}
+
+function addPkgItem(pid, item='', dur='Permanent', qty='1', trade='yes'){
+  const id=++_pkgItem[pid];
+  const rid=`pi${pid}_${id}`;
+  const tb=$('pi'+pid);
+  const tr=document.createElement('tr'); tr.id=rid;
+  tr.innerHTML=`<td><input type="text" value="${esc(item)}" placeholder="Item" oninput="sched()"></td>
+<td><input type="text" value="${esc(dur)}" style="width:74px" oninput="sched()"></td>
+<td><input type="number" value="${qty}" style="width:44px" oninput="sched()"></td>
+<td><select onchange="sched()" style="width:52px"><option value="yes" ${trade==='yes'?'selected':''}>Yes</option><option value="no" ${trade==='no'?'selected':''}>No</option></select></td>
+<td><button class="btn-del" onclick="$('${rid}').remove();sched()">✕</button></td>`;
+  tb.appendChild(tr);
+}
+
+function addDevNote(txt=''){
+  const id=++_dn;
+  const w=$('devnote-wrap');
+  const d=document.createElement('div'); d.id='dn'+id;
+  d.style.cssText='display:flex;gap:5px;margin-bottom:7px;align-items:flex-start';
+  d.innerHTML=`<textarea placeholder="Dev note text…" style="flex:1" oninput="sched()" rows="3">${esc(txt)}</textarea>
+<button class="btn-del" onclick="$('dn${id}').remove();sched()" style="margin-top:2px">✕</button>`;
+  w.appendChild(d);
+}
+
+function addGiftbox(txt=''){
+  const id=++_gb;
+  const w=$('giftbox-wrap');
+  const d=document.createElement('div'); d.id='gb'+id;
+  d.style.cssText='display:flex;gap:5px;margin-bottom:5px;align-items:center';
+  d.innerHTML=`<input type="text" value="${esc(txt)}" placeholder="Item name" style="flex:1" oninput="sched()">
+<button class="btn-del" onclick="$('gb${id}').remove();sched()">✕</button>`;
+  w.appendChild(d);
+}
+
+// ═══════════════════════════════════════════════════
+// HTML GENERATION
+// ═══════════════════════════════════════════════════
+
+const CABAL_BAR = `<p style="text-align:center;margin:20px 0"><img src="https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp" width="500" style="display:inline-block;opacity:.75"></p>`;
+
+function devNoteBlock(num, title, bodyHtml){
+  return `<table style="width:100%;border-collapse:collapse;margin-bottom:18px"><tbody><tr style="vertical-align:top">
+<td style="width:34px;padding:0 10px 0 0;vertical-align:top;padding-top:1px">
+  <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#00c8a0;color:#060810;font-weight:700;text-align:center;line-height:26px;font-size:13px">${num}</span>
+</td>
+<td style="vertical-align:top">
+  <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:6px">${esc(title)}</div>
+  <div style="font-size:13px;color:#ccd6f0;line-height:1.8">${bodyHtml}</div>
+</td>
+</tr></tbody></table>`;
+}
+
+function generateHTML(){
+  const BORDER = 'border:1px solid #1c2840';
+  const BOX    = `${BORDER};border-radius:8px;padding:20px 22px;background:#0d111e`;
+  const LABEL_TOP = 'display:block;border-radius:8px 8px 0 0';
+  const BOX_BTM   = `${BORDER};border-top:none;border-radius:0 0 8px 8px;padding:20px 22px;background:#0d111e`;
+
+  const dlabel  = v('f_dlabel');
+  const title   = v('f_title');
+  const tagline = v('f_tagline');
+  const maDate  = v('f_madate');
+  const maStart = v('f_mastart');
+  const maEnd   = v('f_maend');
+
+  let maFormatted = '', cutoffFormatted = '';
+  if(maDate){
+    const md = new Date(maDate+'T00:00:00');
+    maFormatted = fmtFull(md);
+    cutoffFormatted = fmtFull(getMondayOf(maDate));
+  }
+
+  let html = '';
+
+  // ─ HERO ─
+  html += `<p style="text-align:center;margin-bottom:6px">
+  <span style="background:#1c2840;color:#00c8a0;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:3px 14px;border-radius:4px">PATCH NOTE · ${esc(dlabel)}</span>
 </p>
 <div style="text-align:center;padding:16px 0 12px">
-  <div style="font-size:28px;font-weight:800;color:#eef2ff;letter-spacing:1px">UPDATE: Hot Summer in Cabal World!</div>
-  <div style="font-size:13px;color:#8898b8;margin-top:6px;letter-spacing:.5px">— Blazing adventures await you —</div>
-</div><div style="border:1px solid #1c2840;border-left:4px solid #f0c040;border-radius:8px;padding:18px 22px;background:#0d111e;margin:14px 0">
+  <div style="font-size:28px;font-weight:800;color:#eef2ff;letter-spacing:1px">${esc(title)}</div>
+  <div style="font-size:13px;color:#8898b8;margin-top:6px;letter-spacing:.5px">${esc(tagline)}</div>
+</div>`;
+
+  // ─ QUICK SUMMARY ─
+  const tldrRows = [...$('tldr-wrap').children].map(d=>{
+    const ins = d.querySelectorAll('input');
+    return {k: ins[0]?.value.trim(), val: ins[1]?.value.trim()};
+  }).filter(r=>r.k||r.val);
+
+  if(tldrRows.length){
+    let rows='';
+    tldrRows.forEach(r=>{
+      rows+=`<tr>
+  <td style="padding:5px 8px;color:#8898b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;width:38%;vertical-align:top">${esc(r.k)}</td>
+  <td style="padding:5px 8px;color:#ccd6f0;font-size:13px">${esc(r.val)}</td>
+</tr>`;
+    });
+    html += `<div style="${BORDER};border-left:4px solid #f0c040;border-radius:8px;padding:18px 22px;background:#0d111e;margin:14px 0">
   <div style="font-weight:700;color:#f0c040;font-size:15px;margin-bottom:12px;letter-spacing:1px">📋 QUICK SUMMARY</div>
-  <table style="width:100%;border-collapse:collapse"><tr>
-  <td style="padding:5px 8px;color:#8898b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;width:38%;vertical-align:top">🔧 MAINTENANCE</td>
-  <td style="padding:5px 8px;color:#ccd6f0;font-size:13px">Wednesday 28 May 2026 | 10:00 AM – 06:00 PM (GMT+8)</td>
-</tr><tr>
-  <td style="padding:5px 8px;color:#8898b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;width:38%;vertical-align:top">🏰 NEW DUNGEON</td>
-  <td style="padding:5px 8px;color:#ccd6f0;font-size:13px">Celestia — Cross-server, Level 200+ recommended</td>
-</tr><tr>
-  <td style="padding:5px 8px;color:#8898b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;width:38%;vertical-align:top">🛒 CASH SHOP</td>
-  <td style="padding:5px 8px;color:#ccd6f0;font-size:13px">New summer items + Special packages</td>
-</tr><tr>
-  <td style="padding:5px 8px;color:#8898b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;width:38%;vertical-align:top">📝 DEV NOTE</td>
-  <td style="padding:5px 8px;color:#ccd6f0;font-size:13px">Title distribution cutoff: May 25, 2026</td>
-</tr></table>
-</div><p style="text-align:center;margin:20px 0"><img src="https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp" width="500" style="display:inline-block;opacity:.75"></p><p><img src="https://storage-web-th.combocabal.com/contents/Service%20Outage-1733221510.png" width="400" style="display:block;border-radius:8px 8px 0 0"></p>
-<div style="border:1px solid #1c2840;border-top:none;border-radius:0 0 8px 8px;padding:20px 22px;background:#0d111e">
-  <div style="font-size:13px;color:#8898b8;margin-bottom:10px">The server will be under maintenance during the following time:</div>
-  <div style="background:#0a0d16;border:1px solid #1c2840;border-radius:6px;padding:11px 16px;display:inline-block;margin-bottom:14px">
-    <span style="color:#ccd6f0;font-weight:600;font-size:13px">🗓️ Thursday 28 May 2026</span>
-    <span style="color:#8898b8;margin:0 8px">|</span>
-    <span style="color:#00c8a0;font-weight:600;font-size:13px">10:00 AM – 06:00 PM (GMT+8)</span>
-  </div>
-  <div style="font-weight:600;color:#f0c040;font-size:14px;margin:14px 0 8px">🎁 Compensation Items</div>
+  <table style="width:100%;border-collapse:collapse">${rows}</table>
+</div>`;
+  }
+
+  html += CABAL_BAR;
+
+  // ─ SERVICE OUTAGE ─
+  const compRows = [...$('comp-body').children].map(tr=>{
+    const ins=tr.querySelectorAll('input');
+    const sel=tr.querySelector('select');
+    return {item:ins[0]?.value.trim(),dur:ins[1]?.value.trim(),qty:ins[2]?.value.trim(),special:sel?.value==='s'};
+  }).filter(r=>r.item);
+
+  let compTableHtml='';
+  if(compRows.length){
+    let rows='';
+    compRows.forEach(r=>{
+      const bg=r.special?'#2a1a00':'#0a1a12';
+      const col=r.special?'#f0c040':'#00c8a0';
+      rows+=`<tr>
+  <td style="padding:7px 12px;color:#ccd6f0;font-size:13px;border:1px solid #1c2840">${esc(r.item)}</td>
+  <td style="padding:7px 12px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.dur)}</td>
+  <td style="padding:7px 12px;text-align:center;border:1px solid #1c2840">
+    <span style="background:${bg};color:${col};border-radius:4px;padding:2px 10px;font-weight:700;font-size:12px">×${esc(r.qty)}</span>
+  </td>
+</tr>`;
+    });
+    compTableHtml=`<div style="font-weight:600;color:#f0c040;font-size:14px;margin:14px 0 8px">🎁 Compensation Items</div>
 <table style="width:62%;border-collapse:collapse;margin-bottom:8px" border="1">
   <thead><tr style="background:#1a1a1a">
     <th style="padding:7px 12px;color:#f0c040;font-size:12px;text-align:left;border:1px solid #2a3850">Items</th>
     <th style="padding:7px 12px;color:#f0c040;font-size:12px;text-align:center;border:1px solid #2a3850">Duration</th>
     <th style="padding:7px 12px;color:#f0c040;font-size:12px;text-align:center;border:1px solid #2a3850">QTY</th>
   </tr></thead>
-  <tbody><tr>
-  <td style="padding:7px 12px;color:#ccd6f0;font-size:13px;border:1px solid #1c2840">EXP Potion (30 Min)</td>
-  <td style="padding:7px 12px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">7 Days</td>
-  <td style="padding:7px 12px;text-align:center;border:1px solid #1c2840">
-    <span style="background:#0a1a12;color:#00c8a0;border-radius:4px;padding:2px 10px;font-weight:700;font-size:12px">×5</span>
-  </td>
-</tr><tr>
-  <td style="padding:7px 12px;color:#ccd6f0;font-size:13px;border:1px solid #1c2840">Force Core (High)</td>
-  <td style="padding:7px 12px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">Permanent</td>
-  <td style="padding:7px 12px;text-align:center;border:1px solid #1c2840">
-    <span style="background:#2a1a00;color:#f0c040;border-radius:4px;padding:2px 10px;font-weight:700;font-size:12px">×3</span>
-  </td>
-</tr></tbody>
-</table>
-  <div style="background:rgba(0,200,160,.06);border:1px solid rgba(0,200,160,.2);border-radius:6px;padding:9px 14px;margin-top:10px;font-size:12px;color:#8898b8">ℹ️ Items will be automatically sent to your in-game mailbox.</div>
-</div><p style="text-align:center;margin:20px 0"><img src="https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp" width="500" style="display:inline-block;opacity:.75"></p><div style="text-align:center;padding:14px 0 8px">
+  <tbody>${rows}</tbody>
+</table>`;
+  }
+
+  const compNote = v('f_compnote');
+
+  html += `<p><img src="https://storage-web-th.combocabal.com/contents/Service%20Outage-1733221510.png" width="400" style="${LABEL_TOP}"></p>
+<div style="${BOX_BTM}">
+  <div style="font-size:13px;color:#8898b8;margin-bottom:10px">The server will be under maintenance during the following time:</div>
+  <div style="background:#0a0d16;border:1px solid #1c2840;border-radius:6px;padding:11px 16px;display:inline-block;margin-bottom:14px">
+    <span style="color:#ccd6f0;font-weight:600;font-size:13px">🗓️ ${esc(maFormatted)}</span>
+    <span style="color:#8898b8;margin:0 8px">|</span>
+    <span style="color:#00c8a0;font-weight:600;font-size:13px">${esc(maStart)} – ${esc(maEnd)} (GMT+8)</span>
+  </div>
+  ${compTableHtml}
+  ${compNote?`<div style="background:rgba(0,200,160,.06);border:1px solid rgba(0,200,160,.2);border-radius:6px;padding:9px 14px;margin-top:10px;font-size:12px;color:#8898b8">ℹ️ ${esc(compNote)}</div>`:''}
+</div>`;
+
+  // ─ DUNGEON ─
+  if(chk('f_showdun')){
+    html += CABAL_BAR;
+    const dheaderImg = v('f_dheaderimg');
+    if(dheaderImg) html+=`<p style="margin:0 0 10px 0"><img src="${esc(dheaderImg)}" style="width:100%;max-width:780px;display:block;border-radius:8px"></p>`;
+    const dn   = v('f_dname');
+    const dmap = v('f_dmap');
+    const dbossImg = v('f_dbossimg');
+    const dnpcImg  = v('f_dnpcimg');
+    const dbossName = v('f_dbossname');
+    const dbossDesc = v('f_dbossdesc');
+    const dnpcName  = v('f_dnpcname');
+    const dnpcPos   = v('f_dnpcpos');
+    const dresult   = v('f_dresult');
+    const dresdesc  = v('f_dresdesc');
+
+    const recRows = [...$('recipe-body').children].map(tr=>{
+      const ins=tr.querySelectorAll('input');
+      return {item:ins[0]?.value.trim(),qty:ins[1]?.value.trim()};
+    }).filter(r=>r.item);
+
+    html+=`<div style="text-align:center;padding:14px 0 8px">
   <div style="display:inline-flex;align-items:center;gap:10px;border:2px solid #ff4455;border-radius:10px;padding:10px 24px;background:#12050a">
     <span style="font-size:22px">☠️</span>
     <div>
       <div style="font-size:11px;color:#ff4455;font-weight:700;letter-spacing:3px;text-transform:uppercase">NEW DUNGEON</div>
-      <div style="font-size:22px;font-weight:900;color:#eef2ff;letter-spacing:1px">Celestia</div>
+      <div style="font-size:22px;font-weight:900;color:#eef2ff;letter-spacing:1px">${esc(dn)}</div>
     </div>
     <span style="font-size:22px">☠️</span>
   </div>
-</div><table style="width:66%;border-collapse:collapse;margin:14px auto" border="1"><tbody><tr>
-  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">⚔️ Type</td>
-  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">Cross-server</td>
-</tr><tr>
-  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">📊 Level Required</td>
-  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">200+ Recommended</td>
-</tr><tr>
-  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">🗝️ Entry Key</td>
-  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">Celestia Entry Key</td>
-</tr><tr>
-  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">👥 Party Size</td>
-  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">4</td>
-</tr><tr>
-  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">⏱️ Cooldown</td>
-  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">24 Hours</td>
-</tr></tbody></table><p style="text-align:center;margin:12px 0 6px;font-size:14px;font-weight:700;color:#f0c040">📌 Port Lux → Warp Portal</p><p style="text-align:center;margin:18px 0 6px"><span style="font-size:14px;font-weight:800;color:#ff4455;letter-spacing:2px;text-transform:uppercase">☠️ BOSS MONSTERS ☠️</span></p><div style="border:1px solid #2a0d12;border-left:4px solid #ff4455;border-radius:8px;padding:13px 17px;background:#0e0509;margin:10px 0">
-  <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:4px">Fallen Celestial</div>
-  <div style="font-size:13px;color:#8898b8;line-height:1.6">Ancient guardian of the Celestial realm, now corrupted by dark energy. Defeat it to claim rare materials.</div>
-</div><div style="display:flex;align-items:center;gap:14px;background:#0d111e;border:1px solid #1c2840;border-radius:8px;padding:13px 17px;margin:10px 0"><div>
+</div>`;
+
+    html+=`<table style="width:66%;border-collapse:collapse;margin:14px auto" border="1"><tbody>`;
+    const infoRows=[
+      ['⚔️ Type',         v('f_dtype')],
+      ['📊 Level Required',v('f_dlevel')],
+      ['🗝️ Entry Key',     v('f_dkey')],
+      ['👥 Party Size',    v('f_dparty')],
+      ['⏱️ Cooldown',      v('f_dcool')],
+    ];
+    infoRows.forEach(([lbl,val])=>{
+      html+=`<tr>
+  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">${esc(lbl)}</td>
+  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">${esc(val)}</td>
+</tr>`;
+    });
+    html+=`</tbody></table>`;
+
+    const dloc=v('f_dloc');
+    if(dloc) html+=`<p style="text-align:center;margin:12px 0 6px;font-size:14px;font-weight:700;color:#f0c040">📌 ${esc(dloc)}</p>`;
+    if(dmap)  html+=`<p style="text-align:center;margin:8px 0 14px"><img src="${esc(dmap)}" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #1c2840"></p>`;
+
+    // Boss
+    if(dbossName){
+      html+=`<p style="text-align:center;margin:18px 0 6px"><span style="font-size:14px;font-weight:800;color:#ff4455;letter-spacing:2px;text-transform:uppercase">☠️ BOSS MONSTERS ☠️</span></p>`;
+      if(dbossImg) html+=`<p style="text-align:center;margin:8px 0"><img src="${esc(dbossImg)}" style="max-width:600px;max-height:380px;width:100%;border-radius:8px;border:1px solid #1c2840;object-fit:contain"></p>`;
+      html+=`<div style="border:1px solid #2a0d12;border-left:4px solid #ff4455;border-radius:8px;padding:13px 17px;background:#0e0509;margin:10px 0">
+  <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:4px">${esc(dbossName)}</div>
+  <div style="font-size:13px;color:#8898b8;line-height:1.6">${nl2br(dbossDesc)}</div>
+</div>`;
+    }
+
+    // NPC
+    if(dnpcName){
+      html+=`<div style="display:flex;align-items:center;gap:14px;background:#0d111e;border:1px solid #1c2840;border-radius:8px;padding:13px 17px;margin:10px 0">`;
+      if(dnpcImg) html+=`<img src="${esc(dnpcImg)}" style="max-width:200px;border-radius:6px;flex-shrink:0">`;
+      html+=`<div>
     <div style="font-size:10px;color:#8898b8;font-weight:700;text-transform:uppercase;letter-spacing:1px">NPC</div>
-    <div style="font-size:15px;font-weight:700;color:#eef2ff;margin:4px 0">Celestia Manager</div>
-    <div style="font-size:12px;color:#00c8a0">📍 Port Lux (341, 340)</div>
-  </div></div><div style="border:2px solid #1c2840;border-radius:8px;overflow:hidden;margin:14px 0">
-  <div style="background:#12182e;padding:8px 14px;font-weight:700;color:#f0c040;font-size:13px;text-align:center;border-bottom:1px solid #1c2840">✨ Celestia Craft Recipe</div>
+    <div style="font-size:15px;font-weight:700;color:#eef2ff;margin:4px 0">${esc(dnpcName)}</div>
+    <div style="font-size:12px;color:#00c8a0">📍 ${esc(dnpcPos)}</div>
+  </div></div>`;
+    }
+
+    // Recipe
+    if(recRows.length || dresult){
+      let cells='';
+      recRows.forEach((r,i)=>{
+        cells+=`<td style="padding:8px 10px;border:1px solid #1c2840;font-size:12px;color:#ccd6f0;text-align:center;vertical-align:middle">
+    <div style="font-weight:600">${esc(r.item)}</div>
+    <div style="font-size:11px;color:#8898b8">×${esc(r.qty)}</div>
+  </td>`;
+        if(i<recRows.length-1) cells+=`<td style="font-size:18px;color:#8898b8;text-align:center;vertical-align:middle;padding:4px 5px">+</td>`;
+      });
+      if(cells) cells+=`<td style="font-size:18px;color:#8898b8;text-align:center;vertical-align:middle;padding:4px 5px;font-weight:700">=</td>`;
+      cells+=`<td style="padding:8px 14px;border:2px solid #f0c040;border-radius:6px;font-size:12px;color:#f0c040;text-align:center;vertical-align:middle;font-weight:700;background:#1a1200">
+    <div>${esc(dresult)}</div>
+    ${dresdesc?`<div style="font-size:10px;font-weight:400;color:#8898b8;margin-top:3px">${esc(dresdesc)}</div>`:''}
+  </td>`;
+
+      html+=`<div style="border:2px solid #1c2840;border-radius:8px;overflow:hidden;margin:14px 0">
+  <div style="background:#12182e;padding:8px 14px;font-weight:700;color:#f0c040;font-size:13px;text-align:center;border-bottom:1px solid #1c2840">✨ ${esc(dn)} Craft Recipe</div>
   <div style="padding:14px;background:#0a0d16;overflow-x:auto">
-    <table style="border-collapse:collapse;margin:0 auto;min-width:280px"><tbody><tr><td style="padding:8px 10px;border:1px solid #1c2840;font-size:12px;color:#ccd6f0;text-align:center;vertical-align:middle">
-    <div style="font-weight:600">Celestia Orb</div>
-    <div style="font-size:11px;color:#8898b8">×3</div>
-  </td><td style="font-size:18px;color:#8898b8;text-align:center;vertical-align:middle;padding:4px 5px">+</td><td style="padding:8px 10px;border:1px solid #1c2840;font-size:12px;color:#ccd6f0;text-align:center;vertical-align:middle">
-    <div style="font-weight:600">Refined Osmium</div>
-    <div style="font-size:11px;color:#8898b8">×2</div>
-  </td><td style="font-size:18px;color:#8898b8;text-align:center;vertical-align:middle;padding:4px 5px;font-weight:700">=</td><td style="padding:8px 14px;border:2px solid #f0c040;border-radius:6px;font-size:12px;color:#f0c040;text-align:center;vertical-align:middle;font-weight:700;background:#1a1200">
-    <div>Celestia Core Fragment</div>
-    <div style="font-size:10px;font-weight:400;color:#8898b8;margin-top:3px">Key material for crafting Celestial equipment</div>
-  </td></tr></tbody></table>
+    <table style="border-collapse:collapse;margin:0 auto;min-width:280px"><tbody><tr>${cells}</tr></tbody></table>
   </div>
-</div><p style="text-align:center;margin:20px 0"><img src="https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp" width="500" style="display:inline-block;opacity:.75"></p><p><img src="https://storage-web-sea.combocabal.com/contents/Cash%20Shop-1744085065.png" width="400" style="display:block;border-radius:8px 8px 0 0"></p>
-<div style="border:1px solid #1c2840;border-top:none;border-radius:0 0 8px 8px;padding:20px 22px;background:#0d111e">
-  
-</div><p style="text-align:center;margin:20px 0"><img src="https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp" width="500" style="display:inline-block;opacity:.75"></p><p><img src="https://storage-web-sea.combocabal.com/contents/Dev%20Note-1743666249.png" width="400" style="display:block;border-radius:8px 8px 0 0"></p>
-<div style="border:1px solid #1c2840;border-top:none;border-radius:0 0 8px 8px;padding:20px 22px;background:#0d111e">
-  <table style="width:100%;border-collapse:collapse;margin-bottom:18px"><tbody><tr style="vertical-align:top">
-<td style="width:34px;padding:0 10px 0 0;vertical-align:top;padding-top:1px">
-  <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#00c8a0;color:#060810;font-weight:700;text-align:center;line-height:26px;font-size:13px">1</span>
-</td>
-<td style="vertical-align:top">
-  <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:6px">In-Game Title Distribution to Players</div>
-  <div style="font-size:13px;color:#ccd6f0;line-height:1.8">・The Celestial title will be given to players who have reached the Celestial rank,<br>
+</div>`;
+    }
+  }
+
+  // ─ CASH SHOP ─
+  if(chk('f_showcash')){
+    html += CABAL_BAR;
+    const cashTitle = v('f_cashtitle');
+    const cashItems = [...$('cash-body').children].map(tr=>{
+      const ins=tr.querySelectorAll('input');
+      const sel=tr.querySelector('select');
+      return {item:ins[0]?.value.trim(),dur:ins[1]?.value.trim(),amt:ins[2]?.value.trim(),
+              trade:sel?.value||'yes',limit:ins[3]?.value.trim(),fg:ins[4]?.value.trim()};
+    }).filter(r=>r.item);
+
+    let cashTbl='';
+    if(cashItems.length){
+      let rows='';
+      cashItems.forEach(r=>{
+        const tc=r.trade==='yes'?'#05ff16':'#ff0404';
+        rows+=`<tr style="background:#0a0d16">
+  <td style="padding:7px 10px;color:#ccd6f0;font-size:12px;border:1px solid #1c2840">${esc(r.item)}</td>
+  <td style="padding:7px 10px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.dur)}</td>
+  <td style="padding:7px 10px;color:#ccd6f0;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.amt)}</td>
+  <td style="padding:7px 10px;color:${tc};font-size:12px;text-align:center;font-weight:600;border:1px solid #1c2840">${r.trade==='yes'?'Yes':'No'}</td>
+  <td style="padding:7px 10px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.limit)}</td>
+  <td style="padding:7px 10px;color:#1afff9;font-size:12px;text-align:center;font-weight:600;border:1px solid #1c2840">${esc(r.fg)}</td>
+</tr>`;
+      });
+      cashTbl=`<table style="width:97.679%;border-collapse:collapse;margin:14px 0" border="1">
+<thead>
+  <tr style="background:#1a1a1a"><td colspan="6" style="padding:8px 12px;color:#1afff9;font-weight:700;font-size:13px;text-align:center;border:1px solid #2a3850">${esc(cashTitle)}</td></tr>
+  <tr style="background:#1a1a1a">
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:left;border:1px solid #2a3850">Items</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Duration</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Amount</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Trade</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Limit</th>
+    <th style="padding:7px 10px;color:#1afff9;font-size:11px;text-align:center;border:1px solid #2a3850">FG</th>
+  </tr>
+</thead>
+<tbody>${rows}</tbody>
+</table>`;
+    }
+
+    // Packages
+    let pkgHtml='';
+    [...$('pkgs-wrap').children].forEach(pkgEl=>{
+      const pid=pkgEl.id.replace('pk','');
+      const pname=$(`pn${pid}`)?.value.trim();
+      if(!pname) return;
+      const pprice=$(`pp${pid}`)?.value.trim()||'0';
+      const plimit=$(`pl${pid}`)?.value.trim()||'-';
+      const pitems=[...$(`pi${pid}`).children].map(tr=>{
+        const ins=tr.querySelectorAll('input');
+        const sel=tr.querySelector('select');
+        return {item:ins[0]?.value.trim(),dur:ins[1]?.value.trim(),qty:ins[2]?.value.trim(),trade:sel?.value||'yes'};
+      }).filter(r=>r.item);
+      let prows='';
+      pitems.forEach(r=>{
+        const tc=r.trade==='yes'?'#05ff16':'#ff0404';
+        prows+=`<tr style="background:#0a0d16">
+  <td style="padding:7px 10px;color:#ccd6f0;font-size:12px;border:1px solid #1c2840">${esc(r.item)}</td>
+  <td style="padding:7px 10px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.dur)}</td>
+  <td style="padding:7px 10px;color:#ccd6f0;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.qty)}</td>
+  <td style="padding:7px 10px;color:${tc};font-size:12px;text-align:center;font-weight:600;border:1px solid #1c2840">${r.trade==='yes'?'Yes':'No'}</td>
+</tr>`;
+      });
+      pkgHtml+=`<table style="width:97.679%;border-collapse:collapse;margin:14px 0" border="1">
+<thead>
+  <tr style="background:#1a1a1a"><td colspan="4" style="padding:8px 12px;color:#fbeeb8;font-weight:700;font-size:13px;text-align:center;border:1px solid #2a3850">
+    📦 ${esc(pname)} &nbsp;|&nbsp; <span style="color:#1afff9">${esc(pprice)} FG</span> &nbsp;|&nbsp; <span style="color:#8898b8;font-size:11px">Limit: ${esc(plimit)}</span>
+  </td></tr>
+  <tr style="background:#1a1a1a">
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:left;border:1px solid #2a3850">Items</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Duration</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Amount</th>
+    <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Trade</th>
+  </tr>
+</thead>
+<tbody>${prows}</tbody>
+</table>`;
+    });
+
+    html+=`<p><img src="https://storage-web-sea.combocabal.com/contents/Cash%20Shop-1744085065.png" width="400" style="${LABEL_TOP}"></p>
+<div style="${BOX_BTM}">
+  ${cashTbl}${pkgHtml}
+</div>`;
+  }
+
+  // ─ IN-GAME EVENT ─
+  if(chk('f_showev')){
+    html += CABAL_BAR;
+    const evHeaderImg=v('f_evheaderimg');
+    if(evHeaderImg) html+=`<p style="margin:0 0 10px 0"><img src="${esc(evHeaderImg)}" style="width:100%;max-width:780px;display:block;border-radius:8px"></p>`;
+    const en=v('f_evname'), ed=v('f_evdates'), edesc=v('f_evdesc'), elink=v('f_evlink');
+    html+=`<p style="text-align:center;margin:6px 0">
+  <span style="background:#1c2840;color:#f0c040;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:4px">🎮 IN-GAME EVENT</span>
+</p>
+<div style="${BOX};margin-top:8px">
+  <div style="font-size:18px;font-weight:800;color:#eef2ff;margin-bottom:6px">${esc(en)}</div>
+  ${ed?`<div style="font-size:12px;color:#00c8a0;margin-bottom:10px;font-weight:600">📅 ${esc(ed)}</div>`:''}
+  <div style="font-size:13px;color:#ccd6f0;line-height:1.8">${nl2br(edesc)}</div>
+  ${elink?`<p style="margin-top:12px"><a href="${esc(elink)}" target="_blank" style="color:#00c8a0;font-weight:600;font-size:13px">🔗 More Details →</a></p>`:''}
+</div>`;
+  }
+
+  // ─ PROMOTION ─
+  if(chk('f_showpromo')){
+    html += CABAL_BAR;
+    const promoHeaderImg=v('f_promoheaderimg');
+    if(promoHeaderImg) html+=`<p style="margin:0 0 10px 0"><img src="${esc(promoHeaderImg)}" style="width:100%;max-width:780px;display:block;border-radius:8px"></p>`;
+    const pt=v('f_promotitle'), pd=v('f_promodesc'), ph=v('f_promohighlight'), pl=v('f_promolink');
+
+    const BANNERS=[
+      {id:'f_bmain', img:'https://storage-web-sea.combocabal.com/contents/Main_HeadBanner-1747112468-1757493199.webp', link:'https://cabalpc.com/main-shop-en'},
+      {id:'f_bbonus',img:'https://storage-web-sea.combocabal.com/contents/Bonus_HeadBanner-1747731107-1757499090.webp',link:'https://cabalpc.com/bonus-shop-en'},
+      {id:'f_bcel',  img:'https://storage-web-sea.combocabal.com/contents/Celestial_HeadBanner-1747731100-1757559779.webp',link:'https://cabalpc.com/exclusive-shop-en'},
+    ];
+    let bannersHtml='';
+    BANNERS.forEach(b=>{
+      if(chk(b.id)) bannersHtml+=`<p style="margin:8px 0"><a href="${b.link}" target="_blank"><img src="${b.img}" style="width:100%;max-width:700px;display:block;border-radius:6px"></a></p>`;
+    });
+
+    html+=`<p style="text-align:center;margin:6px 0">
+  <span style="background:#1c2840;color:#f0c040;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:4px">🎉 PROMOTION</span>
+</p>
+<div style="${BOX};margin-top:8px">
+  ${pt?`<div style="font-size:17px;font-weight:800;color:#eef2ff;margin-bottom:8px">${esc(pt)}</div>`:''}
+  ${pd?`<div style="font-size:13px;color:#ccd6f0;line-height:1.8;margin-bottom:10px">${nl2br(pd)}</div>`:''}
+  ${ph?`<div style="background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.3);border-radius:6px;padding:9px 14px;margin-bottom:12px;font-size:13px;color:#f0c040;font-weight:600">⚡ ${esc(ph)}</div>`:''}
+  ${pl?`<p style="margin-bottom:14px"><a href="${esc(pl)}" target="_blank" style="color:#00c8a0;font-weight:600;font-size:13px">🔗 More Details →</a></p>`:''}
+  ${bannersHtml}
+</div>`;
+  }
+
+  // ─ DEV NOTE ─
+  html += CABAL_BAR;
+
+  // #1 – auto Title Distribution
+  const devNote1Body = `・The Celestial title will be given to players who have reached the Celestial rank,<br>
 &nbsp;&nbsp;from "Captain" to "God"<br>
 &nbsp;&nbsp;The list of eligible players will be finalized based on the status as of<br>
-&nbsp;&nbsp;<strong style="color:#eef2ff">Monday 25 May 2026 01:00 PM. (GMT+8)</strong><br>
+&nbsp;&nbsp;<strong style="color:#eef2ff">${esc(cutoffFormatted)} 01:00 PM. (GMT+8)</strong><br>
 &nbsp;&nbsp;Players can claim their titles in the game through the Achievement menu =&gt; Titles.<br>
 <br>
 ⚠️ Note: If players have reached the Celestial rank after the cutoff time,<br>
 please wait for the next title distribution during the next server maintenance.<br>
 <br>
 🔎 Check your rank: 【 <a href="https://sea-member.combocabal.com/en/dashboard" target="_blank" style="color:#00c8a0;font-weight:600">Click Here →</a> 】<br>
-📜 Check the stats of your received title: 【 <a href="https://cabalpc.com/Celestial-Member-Privilege-en" target="_blank" style="color:#00c8a0;font-weight:600">Click Here →</a> 】</div>
-</td>
-</tr></tbody></table><table style="width:100%;border-collapse:collapse;margin-bottom:18px"><tbody><tr style="vertical-align:top">
-<td style="width:34px;padding:0 10px 0 0;vertical-align:top;padding-top:1px">
-  <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#00c8a0;color:#060810;font-weight:700;text-align:center;line-height:26px;font-size:13px">2</span>
-</td>
-<td style="vertical-align:top">
-  <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:6px">Giftbox claiming deadline: Please claim your giftbox items before the next server maintenance.</div>
-  <div style="font-size:13px;color:#ccd6f0;line-height:1.8"></div>
-</td>
-</tr></tbody></table>
-  <div style="margin-top:18px">
+📜 Check the stats of your received title: 【 <a href="https://cabalpc.com/Celestial-Member-Privilege-en" target="_blank" style="color:#00c8a0;font-weight:600">Click Here →</a> 】`;
+
+  const addNotes = [...$('devnote-wrap').children].map(d=>{
+    const ta=d.querySelector('textarea');
+    return ta?ta.value.trim():'';
+  }).filter(t=>t);
+
+  const giftItems = [...$('giftbox-wrap').children].map(d=>{
+    const inp=d.querySelector('input');
+    return inp?inp.value.trim():'';
+  }).filter(t=>t);
+
+  let devNoteContent = devNoteBlock(1,'In-Game Title Distribution to Players', devNote1Body);
+  addNotes.forEach((note,i)=>{
+    const lines=note.split('\n');
+    const head=lines[0];
+    const rest=lines.slice(1).join('\n');
+    devNoteContent+=devNoteBlock(i+2, head, rest?nl2br(rest):'');
+  });
+
+  let giftHtml='';
+  if(giftItems.length){
+    giftHtml=`<div style="margin-top:18px">
   <div style="font-size:12px;font-weight:700;color:#f0c040;text-transform:uppercase;letter-spacing:1px;margin-bottom:9px">🎁 Giftbox Contents</div>
   <div style="display:flex;flex-wrap:wrap;gap:7px">
-    <span style="background:#0a0d16;border:1px solid #1c2840;border-radius:6px;padding:5px 12px;font-size:12px;color:#ccd6f0">Force Core (High)</span>
-    <span style="background:#0a0d16;border:1px solid #1c2840;border-radius:6px;padding:5px 12px;font-size:12px;color:#ccd6f0">EXP Potion (30 Min)</span>
+    ${giftItems.map(item=>`<span style="background:#0a0d16;border:1px solid #1c2840;border-radius:6px;padding:5px 12px;font-size:12px;color:#ccd6f0">${esc(item)}</span>`).join('\n    ')}
   </div>
-</div>
-</div>
+</div>`;
+  }
+
+  html+=`<p><img src="https://storage-web-sea.combocabal.com/contents/Dev%20Note-1743666249.png" width="400" style="${LABEL_TOP}"></p>
+<div style="${BOX_BTM}">
+  ${devNoteContent}
+  ${giftHtml}
+</div>`;
+
+  return html.trim();
+}
+
+// ═══════════════════════════════════════════════════
+// PREVIEW + COPY
+// ═══════════════════════════════════════════════════
+function updatePreview(){
+  $('preview-out').innerHTML = generateHTML();
+}
+
+function copyForumHTML(){
+  const html = generateHTML();
+  navigator.clipboard.writeText(html).then(()=>{
+    toast('✓ Forum HTML copied!');
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=html; ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('✓ Copied to clipboard!');
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+function init(){
+  // TL;DR defaults
+  addTldr('🔧 MAINTENANCE','Wednesday 28 May 2026 | 10:00 AM – 06:00 PM (GMT+8)');
+  addTldr('🏰 NEW DUNGEON','Celestia — Cross-server, Level 200+ recommended');
+  addTldr('🛒 CASH SHOP','New summer items + Special packages');
+  addTldr('📝 DEV NOTE','Title distribution cutoff: May 25, 2026');
+
+  // Comp defaults
+  addComp('EXP Potion (30 Min)','7 Days','5',false);
+  addComp('Force Core (High)','Permanent','3',true);
+
+  // Recipe defaults
+  addRecipe('Celestia Orb','3');
+  addRecipe('Refined Osmium','2');
+
+  // Dev note defaults
+  addDevNote('Giftbox claiming deadline: Please claim your giftbox items before the next server maintenance.');
+
+  // Giftbox defaults
+  addGiftbox('Force Core (High)');
+  addGiftbox('EXP Potion (30 Min)');
+
+  // Cutoff display + preview
+  onMADate();
+}
+
+init();
+</script>
+</body>
+</html>
