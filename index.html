@@ -111,6 +111,37 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#1c2840;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#2a3850}
+
+/* ── Import Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:#0d111e;border:1px solid var(--border);border-radius:10px;padding:22px 24px;width:540px;max-width:95vw;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.modal-title{font-size:15px;font-weight:700;color:var(--white);margin-bottom:4px}
+.modal-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.modal-tabs{display:flex;gap:4px;margin-bottom:14px}
+.modal-tab{padding:5px 14px;border-radius:5px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:rgba(255,255,255,.05);color:var(--muted);transition:all .15s}
+.modal-tab.active{background:var(--accent);color:#060810}
+.modal-pane{display:none}.modal-pane.active{display:block}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn-modal-ok{padding:7px 20px;border-radius:6px;background:var(--accent);color:#060810;border:none;font-weight:700;font-size:13px;cursor:pointer}
+.btn-modal-ok:hover{opacity:.85}
+.btn-modal-cancel{padding:7px 14px;border-radius:6px;background:transparent;color:var(--muted);border:1px solid var(--border);font-size:13px;cursor:pointer}
+.btn-modal-cancel:hover{color:var(--text);border-color:var(--text)}
+.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:4px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent)}
+.drop-zone-icon{font-size:28px;margin-bottom:6px}
+.drop-zone-txt{font-size:12px;color:var(--muted)}
+.drop-zone-txt strong{color:var(--accent);cursor:pointer}
+#file-input-hidden{display:none}
+
+/* ── Sync Modal ── */
+.sync-section{border:1px solid var(--border);border-radius:7px;padding:11px 13px;margin-bottom:10px}
+.sync-section-head{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px}
+.sync-log{background:#06080f;border:1px solid var(--border);border-radius:6px;padding:10px 12px;height:130px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.7;margin-top:10px;display:none}
+.sync-log-line{margin:0}
+.modal-box-wide{width:620px;max-width:96vw}
+.sync-note{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5}
+.sync-note strong{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -127,6 +158,9 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
   </div>
   <div class="header-actions">
     <button class="btn-secondary" onclick="updatePreview()">🔄 Refresh</button>
+    <button class="btn-secondary" onclick="showSyncModal()" title="Sync ข้อมูลจาก Google Sheets / Dungeon Page / Notion">⚡ Sync</button>
+    <button class="btn-secondary" onclick="exportData()" title="Export ข้อมูลทั้งหมดเป็น JSON">💾 Export</button>
+    <button class="btn-secondary" onclick="showImportModal()" title="Import ข้อมูลจากไฟล์ JSON">📥 Import</button>
     <button class="btn-primary" onclick="copyForumHTML()">📋 Copy Forum HTML</button>
   </div>
 </header>
@@ -338,6 +372,88 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
 </div><!-- end app -->
 
 <div class="toast" id="toast"></div>
+
+<!-- ═══ SYNC MODAL ═══ -->
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-title">⚡ Sync from Sources</div>
+    <div class="modal-sub">ดึงข้อมูลอัตโนมัติจาก Google Sheets · Dungeon Page · Notion</div>
+
+    <!-- Google Sheets -->
+    <div class="sync-section">
+      <div class="sync-section-head">📊 Google Sheets</div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Sheet ID</label>
+        <input type="text" id="sy_sheetid" placeholder="107z-j9_wFplK9tqOxRwUHeTlZnTGmMMvjx-WREGvozw" oninput="saveSyncSettings()">
+      </div>
+      <div class="frow">
+        <div class="field"><label>Cash Shop GID</label><input type="text" id="sy_cashgid" placeholder="576196079" oninput="saveSyncSettings()"></div>
+        <div class="field"><label>Comp Items GID</label><input type="text" id="sy_compgid" placeholder="1750875275" oninput="saveSyncSettings()"></div>
+        <div class="field" style="max-width:90px"><label>Start Row</label><input type="number" id="sy_comprow" value="16" min="1" oninput="saveSyncSettings()"></div>
+      </div>
+      <div class="sync-note">⚠️ Sheet ต้องตั้ง Share → <strong>"Anyone with the link can view"</strong> จึงจะดึงได้</div>
+    </div>
+
+    <!-- Dungeon Page -->
+    <div class="sync-section">
+      <div class="sync-section-head">🏰 Dungeon Page URL (th-news.combocabal.com)</div>
+      <div class="field" style="margin-bottom:0">
+        <input type="url" id="sy_dungeonurl" placeholder="https://th-news.combocabal.com/22Apr69-UpdateCBPC-th" oninput="saveSyncSettings()">
+      </div>
+    </div>
+
+    <!-- Notion -->
+    <div class="sync-section">
+      <div class="sync-section-head">📝 Notion Dev Note</div>
+      <div class="frow">
+        <div class="field"><label>Page ID</label><input type="text" id="sy_notionid" placeholder="36141b7af0c2816f8499de0fc76fbfca" oninput="saveSyncSettings()"></div>
+        <div class="field"><label>API Key</label><input type="text" id="sy_notionkey" placeholder="ntn_..." oninput="saveSyncSettings()" autocomplete="off"></div>
+      </div>
+      <div class="sync-note">🔒 API key จะถูกเก็บไว้ใน browser เท่านั้น · ส่งตรงไป Notion API ผ่าน cors proxy</div>
+    </div>
+
+    <!-- Sync Log -->
+    <div class="sync-log" id="sync-log"></div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeSyncModal()">ปิด</button>
+      <button class="btn-modal-ok" id="sync-run-btn" onclick="syncAll()">⚡ Sync All</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ IMPORT MODAL ═══ -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal-box">
+    <div class="modal-title">📥 Import Patch Note Data</div>
+    <div class="modal-sub">โหลดข้อมูลจากไฟล์ .json ที่ Export ไว้ก่อนหน้า</div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchModalTab('file')">📁 ไฟล์ JSON</button>
+      <button class="modal-tab" onclick="switchModalTab('paste')">📋 Paste JSON</button>
+    </div>
+    <!-- Tab: File -->
+    <div class="modal-pane active" id="mtab-file">
+      <div class="drop-zone" id="drop-zone" onclick="$('file-input-hidden').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="onFileDrop(event)">
+        <div class="drop-zone-icon">📂</div>
+        <div class="drop-zone-txt">ลากไฟล์วางที่นี่ หรือ <strong>คลิกเพื่อเลือกไฟล์</strong></div>
+        <div class="drop-zone-txt" style="margin-top:4px;font-size:10px">รองรับไฟล์ .json เท่านั้น</div>
+      </div>
+      <input type="file" id="file-input-hidden" accept=".json" onchange="onFileSelect(event)">
+      <div id="file-name-display" style="font-size:11px;color:var(--accent);margin-top:6px;min-height:16px"></div>
+    </div>
+    <!-- Tab: Paste -->
+    <div class="modal-pane" id="mtab-paste">
+      <textarea id="json-paste-area" style="width:100%;height:180px;font-family:monospace;font-size:11px;resize:vertical" placeholder='{"mode":"pcsea","title":{...}}'></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeImportModal()">ยกเลิก</button>
+      <button class="btn-modal-ok" onclick="doImport()">✅ Import</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════
@@ -961,6 +1077,441 @@ function copyForumHTML(){
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// EXPORT DATA → JSON file
+// ═══════════════════════════════════════════════════════════════════
+function exportData(){
+  const data = {
+    mode: currentMode,
+    title:{dlabel:v('f_dlabel'),madate:v('f_madate'),title:v('f_title'),tagline:v('f_tagline'),mastart:v('f_mastart'),maend:v('f_maend')},
+    tldr:[...$('tldr-wrap').children].map(d=>{const i=d.querySelectorAll('input');return{key:i[0]?.value.trim()||'',val:i[1]?.value.trim()||''}}).filter(r=>r.key||r.val),
+    serviceOutage:{
+      compItems:[...$('comp-body').children].map(tr=>{const i=tr.querySelectorAll('input'),s=tr.querySelector('select');return{item:i[0]?.value.trim()||'',dur:i[1]?.value.trim()||'',qty:i[2]?.value.trim()||'1',special:s?.value==='s'}}).filter(r=>r.item),
+      compNote:v('f_compnote'),
+    },
+    dungeon:{
+      show:chk('f_showdun'), headerImg:v('f_dheaderimg'),
+      dungeons:[...($('dun-wrap')?.children||[])].map(d=>{const id=d.id.replace('du','');return{img:$(`di${id}`)?.value.trim()||'',name:$(`dn${id}`)?.value.trim()||'',loc:$(`dl${id}`)?.value.trim()||'',entry:$(`de${id}`)?.value.trim()||''}}).filter(r=>r.name||r.img),
+    },
+    cashShop:{
+      show:chk('f_showcash'), title:v('f_cashtitle'),
+      items:[...$('cash-body').children].map(tr=>{const i=tr.querySelectorAll('input'),s=tr.querySelector('select');return{item:i[0]?.value.trim()||'',dur:i[1]?.value.trim()||'',amt:i[2]?.value.trim()||'1',trade:s?.value||'yes',limit:i[3]?.value.trim()||'-',fg:i[4]?.value.trim()||'0'}}).filter(r=>r.item),
+      packages:[...$('pkgs-wrap').children].map(pk=>{const pid=pk.id.replace('pk','');return{name:$(`pn${pid}`)?.value.trim()||'',price:$(`pp${pid}`)?.value.trim()||'0',limit:$(`pl${pid}`)?.value.trim()||'-',items:[...$(`pi${pid}`).children].map(tr=>{const i=tr.querySelectorAll('input'),s=tr.querySelector('select');return{item:i[0]?.value.trim()||'',dur:i[1]?.value.trim()||'',qty:i[2]?.value.trim()||'1',trade:s?.value||'yes'}}).filter(r=>r.item)}}).filter(r=>r.name),
+    },
+    inGameEvent:{show:chk('f_showev'),headerImg:v('f_evheaderimg'),name:v('f_evname'),dates:v('f_evdates'),desc:v('f_evdesc'),link:v('f_evlink')},
+    promotion:{
+      show:chk('f_showpromo'),headerImg:v('f_promoheaderimg'),title:v('f_promotitle'),desc:v('f_promodesc'),highlight:v('f_promohighlight'),link:v('f_promolink'),
+      shops:{
+        main:     {show:chk('f_bmain'), img:v('f_bmain_img'), link:v('f_bmain_link'), note:v('f_bmain_note')},
+        bonus:    {show:chk('f_bbonus'),img:v('f_bbonus_img'),link:v('f_bbonus_link'),note:v('f_bbonus_note')},
+        celestial:{show:chk('f_bcel'),  img:v('f_bcel_img'), link:v('f_bcel_link'), note:v('f_bcel_note')},
+      },
+    },
+    devNote:{
+      additionalNotes:[...$('devnote-wrap').children].map(d=>d.querySelector('textarea')?.value.trim()||'').filter(t=>t),
+      giftboxItems:[...$('giftbox-wrap').children].map(d=>d.querySelector('input')?.value.trim()||'').filter(t=>t),
+    },
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`PatchNote_${(v('f_madate')||'data').replace(/-/g,'')}_${currentMode.toUpperCase()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('💾 Exported!');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IMPORT MODAL
+// ═══════════════════════════════════════════════════════════════════
+let _importFile = null;
+
+function showImportModal(){
+  _importFile=null; $('file-name-display').textContent='';
+  $('json-paste-area').value='';
+  switchModalTab('file');
+  $('import-modal').classList.add('open');
+}
+function closeImportModal(){ $('import-modal').classList.remove('open'); }
+
+function switchModalTab(tab){
+  ['file','paste'].forEach(t=>{
+    $(`mtab-${t}`).classList.toggle('active',t===tab);
+  });
+  document.querySelectorAll('#import-modal .modal-tab').forEach(b=>{
+    b.classList.toggle('active', b.textContent.toLowerCase().includes(tab==='file'?'ไฟล์':'paste'));
+  });
+}
+
+function onFileSelect(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  _importFile=file;
+  $('file-name-display').textContent=`📄 ${file.name}`;
+  $('drop-zone').classList.remove('drag');
+}
+
+function onFileDrop(e){
+  e.preventDefault();
+  $('drop-zone').classList.remove('drag');
+  const file=e.dataTransfer.files[0];
+  if(!file||!file.name.endsWith('.json')){alert('กรุณาใช้ไฟล์ .json เท่านั้น');return;}
+  _importFile=file;
+  $('file-name-display').textContent=`📄 ${file.name}`;
+}
+
+function doImport(){
+  const pane=$('mtab-paste');
+  if(pane.classList.contains('active')){
+    const txt=$('json-paste-area').value.trim();
+    if(!txt){alert('กรุณา paste JSON ก่อน');return;}
+    try{loadJSON(JSON.parse(txt));}catch(e){alert('JSON ไม่ถูกต้อง: '+e.message);}
+    closeImportModal();
+  } else {
+    if(!_importFile){alert('กรุณาเลือกไฟล์ก่อน');return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{loadJSON(JSON.parse(e.target.result));closeImportModal();}
+      catch(err){alert('ไฟล์ไม่ถูกต้อง: '+err.message);}
+    };
+    reader.readAsText(_importFile);
+  }
+}
+
+function setField(id, val){ const e=$(id); if(e&&val!==undefined&&val!==null) e.value=val; }
+function setCheck(id, val){ const e=$(id); if(e&&val!==undefined) e.checked=!!val; }
+
+function addPkgFromData(name,price,limit,items){
+  addPkg();
+  const pid=_pkg;
+  setField(`pn${pid}`,name); setField(`pp${pid}`,price); setField(`pl${pid}`,limit);
+  (items||[]).forEach(r=>addPkgItem(pid,r.item,r.dur,r.qty,r.trade));
+}
+
+function loadJSON(d){
+  try{
+    if(d.mode) setMode(d.mode);
+
+    if(d.title){
+      const t=d.title;
+      setField('f_dlabel',t.dlabel); setField('f_title',t.title);
+      setField('f_tagline',t.tagline); setField('f_mastart',t.mastart); setField('f_maend',t.maend);
+      if(t.madate){setField('f_madate',t.madate);onMADate();}
+    }
+
+    if(d.tldr){
+      $('tldr-wrap').innerHTML='';_tldr=0;
+      d.tldr.forEach(r=>addTldr(r.key||'',r.val||''));
+    }
+
+    if(d.serviceOutage){
+      $('comp-body').innerHTML='';_comp=0;
+      (d.serviceOutage.compItems||[]).forEach(r=>addComp(r.item,r.dur,r.qty,r.special));
+      setField('f_compnote',d.serviceOutage.compNote);
+    }
+
+    if(d.dungeon){
+      setCheck('f_showdun',d.dungeon.show!==false); setBadge('s4bg','f_showdun');
+      setField('f_dheaderimg',d.dungeon.headerImg);
+      $('dun-wrap').innerHTML='';_dun=0;
+      (d.dungeon.dungeons||[]).forEach(r=>addDungeon(r.img||'',r.name||'',r.loc||'',r.entry||''));
+    }
+
+    if(d.cashShop){
+      setCheck('f_showcash',d.cashShop.show!==false); setBadge('s5bg','f_showcash');
+      setField('f_cashtitle',d.cashShop.title);
+      $('cash-body').innerHTML='';_cash=0;
+      (d.cashShop.items||[]).forEach(r=>addCash(r.item,r.dur,r.amt,r.trade,r.limit,r.fg));
+      $('pkgs-wrap').innerHTML='';_pkg=0;_pkgItem={};
+      (d.cashShop.packages||[]).forEach(p=>addPkgFromData(p.name,p.price,p.limit,p.items));
+    }
+
+    if(d.inGameEvent){
+      setCheck('f_showev',d.inGameEvent.show===true); setBadge('s6bg','f_showev');
+      setField('f_evheaderimg',d.inGameEvent.headerImg); setField('f_evname',d.inGameEvent.name);
+      setField('f_evdates',d.inGameEvent.dates); setField('f_evdesc',d.inGameEvent.desc);
+      setField('f_evlink',d.inGameEvent.link);
+    }
+
+    if(d.promotion){
+      setCheck('f_showpromo',d.promotion.show===true); setBadge('s7bg','f_showpromo');
+      setField('f_promoheaderimg',d.promotion.headerImg); setField('f_promotitle',d.promotion.title);
+      setField('f_promodesc',d.promotion.desc); setField('f_promohighlight',d.promotion.highlight);
+      setField('f_promolink',d.promotion.link);
+      const sh=d.promotion.shops||{};
+      if(sh.main)     {setCheck('f_bmain', sh.main.show!==false);     setField('f_bmain_img', sh.main.img);     setField('f_bmain_link', sh.main.link);     setField('f_bmain_note', sh.main.note);}
+      if(sh.bonus)    {setCheck('f_bbonus',sh.bonus.show!==false);    setField('f_bbonus_img',sh.bonus.img);    setField('f_bbonus_link',sh.bonus.link);    setField('f_bbonus_note',sh.bonus.note);}
+      if(sh.celestial){setCheck('f_bcel',  sh.celestial.show!==false);setField('f_bcel_img',  sh.celestial.img);setField('f_bcel_link',  sh.celestial.link); setField('f_bcel_note',  sh.celestial.note);}
+    }
+
+    if(d.devNote){
+      $('devnote-wrap').innerHTML='';_dn=0;
+      (d.devNote.additionalNotes||[]).forEach(n=>addDevNote(n));
+      $('giftbox-wrap').innerHTML='';_gb=0;
+      (d.devNote.giftboxItems||[]).forEach(i=>addGiftbox(i));
+    }
+
+    updatePreview();
+    toast('✅ Imported!');
+  }catch(e){alert('Import error: '+e.message);}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SYNC SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+const SYNC_LS_KEY = 'patchnote_sync_settings';
+
+function saveSyncSettings(){
+  localStorage.setItem(SYNC_LS_KEY, JSON.stringify({
+    sheetId:    v('sy_sheetid'),
+    cashGid:    v('sy_cashgid'),
+    compGid:    v('sy_compgid'),
+    compRow:    v('sy_comprow'),
+    dungeonUrl: v('sy_dungeonurl'),
+    notionId:   v('sy_notionid'),
+    notionKey:  v('sy_notionkey'),
+  }));
+}
+
+function loadSyncSettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem(SYNC_LS_KEY)||'{}');
+    setField('sy_sheetid',   s.sheetId    || '107z-j9_wFplK9tqOxRwUHeTlZnTGmMMvjx-WREGvozw');
+    setField('sy_cashgid',   s.cashGid    || '576196079');
+    setField('sy_compgid',   s.compGid    || '1750875275');
+    setField('sy_comprow',   s.compRow    || '16');
+    setField('sy_dungeonurl',s.dungeonUrl || '');
+    setField('sy_notionid',  s.notionId   || '');
+    setField('sy_notionkey', s.notionKey  || '');
+  }catch(e){}
+}
+
+function showSyncModal(){
+  loadSyncSettings();
+  const log=$('sync-log');
+  log.innerHTML=''; log.style.display='none';
+  $('sync-run-btn').disabled=false;
+  $('sync-run-btn').textContent='⚡ Sync All';
+  $('sync-modal').classList.add('open');
+}
+function closeSyncModal(){ $('sync-modal').classList.remove('open'); }
+
+function syncLog(msg, color){
+  const log=$('sync-log');
+  log.style.display='block';
+  const p=document.createElement('p');
+  p.className='sync-log-line';
+  p.style.color = color||'var(--muted)';
+  p.textContent = msg;
+  log.appendChild(p);
+  log.scrollTop=log.scrollHeight;
+}
+
+// ── CSV Parser ──
+function parseCSV(text){
+  return text.split('\n').map(line=>{
+    const cells=[]; let inQ=false, cur='';
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  }).filter(r=>r.some(c=>c));
+}
+
+function detectHeader(rows, keywords){
+  for(let i=0;i<rows.length;i++){
+    const joined=rows[i].join(' ').toLowerCase();
+    if(keywords.some(k=>joined.includes(k))) return i;
+  }
+  return 0;
+}
+
+function durTh(t){
+  t=String(t||'').trim();
+  t=t.replace(/ถาวร/g,'Permanent').replace(/(\d+)\s*วัน/g,'$1 Days')
+     .replace(/(\d+)\s*ชม\./g,'$1 Hours').replace(/(\d+)\s*ชั่วโมง/g,'$1 Hours')
+     .replace(/(\d+)\s*นาที/g,'$1 Min').replace(/\s+/g,' ');
+  return t.trim()||'Permanent';
+}
+
+// ── Fetch via CORS proxy (for dungeon/news pages) ──
+async function proxyFetch(url){
+  const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+  if(!r.ok) throw new Error(`Proxy HTTP ${r.status}`);
+  return await r.text();
+}
+
+// ── Google Sheets ──
+async function syncSheets(){
+  const sheetId=v('sy_sheetid'), cashGid=v('sy_cashgid'), compGid=v('sy_compgid');
+  const compStart=Math.max(0, parseInt(v('sy_comprow')||'16')-1);
+  if(!sheetId){ syncLog('⚠️  ข้าม Google Sheets — ไม่มี Sheet ID'); return {cashItems:[],compItems:[]}; }
+
+  let cashItems=[], compItems=[];
+
+  // Cash Shop
+  if(cashGid){
+    syncLog('📊 กำลังดึง Cash Shop...');
+    try{
+      const url=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${cashGid}`;
+      const res=await fetch(url,{credentials:'omit'});
+      if(!res.ok) throw new Error(`HTTP ${res.status} — Sheet อาจยังไม่ได้ตั้ง "Anyone with link"`);
+      const rows=parseCSV(await res.text());
+      const hi=detectHeader(rows,['item','ไอเทม','ชื่อ','duration','ระยะเวลา','fg','price']);
+      for(const row of rows.slice(hi+1)){
+        const item=(row[0]||'').trim();
+        if(!item||item.startsWith('#')) continue;
+        const tr=(row[3]||'').toLowerCase();
+        cashItems.push({item, dur:durTh(row[1]), amt:row[2]?.trim()||'1',
+          trade:(tr.includes('no')||tr==='x'||tr==='✗')?'no':'yes',
+          limit:row[4]?.trim()||'-', fg:row[5]?.trim()||'0'});
+      }
+      syncLog(`   ✅ Cash Shop: ${cashItems.length} items`, 'var(--accent)');
+    }catch(e){ syncLog(`   ❌ ${e.message}`, 'var(--red)'); }
+  }
+
+  // Comp Items
+  if(compGid){
+    syncLog('🎁 กำลังดึง Compensation Items...');
+    try{
+      const url=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${compGid}`;
+      const res=await fetch(url,{credentials:'omit'});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows=parseCSV(await res.text());
+      for(const row of rows.slice(compStart)){
+        const item=(row[1]||row[0]||'').trim();
+        if(!item||item.startsWith('#')) continue;
+        const note=(row[4]||'').toLowerCase();
+        compItems.push({item, dur:durTh(row[2]), qty:row[3]?.trim()||'1',
+          special:note.includes('gold')||note.includes('special')||note.includes('ทอง')});
+      }
+      syncLog(`   ✅ Comp Items: ${compItems.length} items`, 'var(--accent)');
+    }catch(e){ syncLog(`   ❌ ${e.message}`, 'var(--red)'); }
+  }
+
+  return {cashItems, compItems};
+}
+
+// ── Dungeon Scraping ──
+async function syncDungeon(){
+  const url=v('sy_dungeonurl');
+  if(!url){ syncLog('⚠️  ข้าม Dungeon — ไม่มี URL'); return []; }
+  syncLog('🏰 กำลัง scrape Dungeon page...');
+  try{
+    const html=await proxyFetch(url);
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const dungeons=[];
+    for(const tbl of doc.querySelectorAll('table')){
+      const dun={};
+      for(const row of tbl.querySelectorAll('tr')){
+        const cells=[...row.querySelectorAll('td,th')];
+        if(cells.length<2) continue;
+        const lbl=cells[0].textContent.trim().toLowerCase();
+        const val=cells[1].textContent.trim();
+        if(/dungeon name|ชื่อดัน|ดันเจียน/.test(lbl)) dun.name=val;
+        else if(/location|สถานที่|เมือง/.test(lbl)) dun.loc=val;
+        else if(/entry item|entry key|ไอเทม|ใบดัน/.test(lbl)) dun.entry=val;
+      }
+      if(dun.name){ dun.img=''; dun.loc=dun.loc||''; dun.entry=dun.entry||''; dungeons.push(dun); }
+    }
+    syncLog(`   ✅ Dungeon: ${dungeons.length} found — ${dungeons.map(d=>d.name).join(', ')}`, 'var(--accent)');
+    return dungeons;
+  }catch(e){ syncLog(`   ❌ ${e.message}`, 'var(--red)'); return []; }
+}
+
+// ── Notion Dev Notes ──
+async function syncNotion(){
+  const pageId=v('sy_notionid').replace(/-/g,'');
+  const apiKey=v('sy_notionkey');
+  if(!pageId||!apiKey){ syncLog('⚠️  ข้าม Notion — ไม่มี Page ID หรือ API Key'); return []; }
+  syncLog('📝 กำลังดึง Notion Dev Note...');
+  try{
+    // Use corsproxy.io to forward Authorization header to Notion API
+    const proxyBase='https://corsproxy.io/?';
+    const target=`https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`;
+    const res=await fetch(proxyBase+encodeURIComponent(target),{
+      headers:{'Authorization':`Bearer ${apiKey}`,'Notion-Version':'2022-06-28','Content-Type':'application/json'}
+    });
+    if(!res.ok) throw new Error(`Notion API ${res.status}: ${await res.text().then(t=>t.slice(0,120))}`);
+    const blocks=(await res.json()).results||[];
+    const notes=[]; let cur=[];
+    for(const blk of blocks){
+      const btype=blk.type||'';
+      const rich=blk[btype]?.rich_text||[];
+      const text=rich.map(t=>t.plain_text||'').join('').trim();
+      if(!text) continue;
+      if(btype==='numbered_list_item'){
+        if(cur.length) notes.push(cur.join('\n'));
+        cur=[text];
+      } else if(btype==='bulleted_list_item') cur.push('・'+text);
+      else cur.push(text);
+    }
+    if(cur.length) notes.push(cur.join('\n'));
+    const additional=notes.slice(1);
+    syncLog(`   ✅ Notion: ${additional.length} extra dev note(s)`, 'var(--accent)');
+    return additional;
+  }catch(e){ syncLog(`   ❌ ${e.message}`, 'var(--red)'); return []; }
+}
+
+// ── MAIN SYNC ──
+async function syncAll(){
+  const btn=$('sync-run-btn');
+  btn.disabled=true; btn.textContent='⏳ Syncing...';
+  saveSyncSettings();
+  const log=$('sync-log');
+  log.innerHTML=''; log.style.display='block';
+  syncLog('━━━━━━━━━━ เริ่ม Sync ━━━━━━━━━━');
+
+  try{
+    const [sheets, dungeons, devNotes] = await Promise.all([
+      syncSheets(), syncDungeon(), syncNotion()
+    ]);
+
+    syncLog('━━━━━━━━━━ Apply ข้อมูล ━━━━━━━━━━');
+
+    // Apply Cash Shop
+    if(sheets.cashItems.length){
+      $('cash-body').innerHTML='';_cash=0;
+      sheets.cashItems.forEach(r=>addCash(r.item,r.dur,r.amt,r.trade,r.limit,r.fg));
+      setCheck('f_showcash',true); setBadge('s5bg','f_showcash');
+      syncLog(`   📊 Cash Shop → ${sheets.cashItems.length} items ใส่แล้ว`, 'var(--accent)');
+    }
+
+    // Apply Comp Items
+    if(sheets.compItems.length){
+      $('comp-body').innerHTML='';_comp=0;
+      sheets.compItems.forEach(r=>addComp(r.item,r.dur,r.qty,r.special));
+      syncLog(`   🎁 Comp Items → ${sheets.compItems.length} items ใส่แล้ว`, 'var(--accent)');
+    }
+
+    // Apply Dungeon
+    if(dungeons.length){
+      $('dun-wrap').innerHTML='';_dun=0;
+      dungeons.forEach(d=>addDungeon(d.img,d.name,d.loc,d.entry));
+      setCheck('f_showdun',true); setBadge('s4bg','f_showdun');
+      syncLog(`   🏰 Dungeon → ${dungeons.length} dungeon(s) ใส่แล้ว`, 'var(--accent)');
+    }
+
+    // Apply Notion Dev Notes
+    if(devNotes.length){
+      $('devnote-wrap').innerHTML='';_dn=0;
+      devNotes.forEach(n=>addDevNote(n));
+      syncLog(`   📝 Notion → ${devNotes.length} dev note(s) ใส่แล้ว`, 'var(--accent)');
+    }
+
+    updatePreview();
+    syncLog('━━━━━━━━━━ ✅ Sync เสร็จแล้ว ━━━━━━━━━━', 'var(--accent)');
+    toast('⚡ Sync complete!');
+  }catch(e){
+    syncLog(`❌ Error: ${e.message}`, 'var(--red)');
+  }
+
+  btn.disabled=false; btn.textContent='⚡ Sync All';
+}
+
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
@@ -975,9 +1526,8 @@ function init(){
   addComp('EXP Potion (30 Min)','7 Days','5',false);
   addComp('Force Core (High)','Permanent','3',true);
 
-  // Recipe defaults
-  addRecipe('Celestia Orb','3');
-  addRecipe('Refined Osmium','2');
+  // Dungeon defaults
+  addDungeon('','Celestia','Pontus Ferrum','Dimensional Ship\'s Key');
 
   // Dev note defaults
   addDevNote('Giftbox claiming deadline: Please claim your giftbox items before the next server maintenance.');
