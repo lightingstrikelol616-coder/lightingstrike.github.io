@@ -198,43 +198,10 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
         <label class="sw"><input type="checkbox" id="f_showdun" checked onchange="setBadge('s4bg','f_showdun');sched()"><span class="sl"></span></label>
       </div>
       <div class="field"><label>🖼️ Header Image URL</label><input type="url" id="f_dheaderimg" placeholder="https://… (แสดงเหนือหัวข้อ dungeon)" oninput="sched()"></div>
-      <div class="frow">
-        <div class="field"><label>Dungeon Name</label><input type="text" id="f_dname" value="Celestia" oninput="sched()"></div>
-        <div class="field"><label>Type</label><input type="text" id="f_dtype" value="Cross-server" oninput="sched()"></div>
-      </div>
-      <div class="frow">
-        <div class="field"><label>Level Required</label><input type="text" id="f_dlevel" value="200+ Recommended" oninput="sched()"></div>
-        <div class="field"><label>Entry Key</label><input type="text" id="f_dkey" value="Celestia Entry Key" oninput="sched()"></div>
-      </div>
-      <div class="frow">
-        <div class="field"><label>Party Size</label><input type="text" id="f_dparty" value="4" oninput="sched()"></div>
-        <div class="field"><label>Cooldown</label><input type="text" id="f_dcool" value="24 Hours" oninput="sched()"></div>
-      </div>
-      <div class="field"><label>Location</label><input type="text" id="f_dloc" value="Port Lux → Warp Portal" oninput="sched()"></div>
       <div class="divider"></div>
-      <div class="sub-hdr">🖼️ Image URLs</div>
-      <div class="field"><label>Map Image URL</label><input type="url" id="f_dmap" placeholder="https://..." oninput="sched()"></div>
-      <div class="field"><label>Boss Image URL</label><input type="url" id="f_dbossimg" placeholder="https://..." oninput="sched()"></div>
-      <div class="field"><label>NPC Image URL</label><input type="url" id="f_dnpcimg" placeholder="https://..." oninput="sched()"></div>
-      <div class="divider"></div>
-      <div class="sub-hdr">☠️ Boss Monster</div>
-      <div class="field"><label>Boss Name</label><input type="text" id="f_dbossname" value="Fallen Celestial" oninput="sched()"></div>
-      <div class="field"><label>Boss Description</label><textarea id="f_dbossdesc" oninput="sched()">Ancient guardian of the Celestial realm, now corrupted by dark energy. Defeat it to claim rare materials.</textarea></div>
-      <div class="divider"></div>
-      <div class="sub-hdr">🧑 NPC</div>
-      <div class="frow">
-        <div class="field"><label>NPC Name</label><input type="text" id="f_dnpcname" value="Celestia Manager" oninput="sched()"></div>
-        <div class="field"><label>Position</label><input type="text" id="f_dnpcpos" value="Port Lux (341, 340)" oninput="sched()"></div>
-      </div>
-      <div class="divider"></div>
-      <div class="sub-hdr">⚗️ Craft Recipe</div>
-      <div class="field"><label>Result Item</label><input type="text" id="f_dresult" value="Celestia Core Fragment" oninput="sched()"></div>
-      <div class="field"><label>Result Description</label><input type="text" id="f_dresdesc" value="Key material for crafting Celestial equipment" oninput="sched()"></div>
-      <table class="dyn-tbl">
-        <thead><tr><th>Ingredient</th><th>QTY</th><th></th></tr></thead>
-        <tbody id="recipe-body"></tbody>
-      </table>
-      <button class="btn-add" onclick="addRecipe()">+ Add Ingredient</button>
+      <div class="sub-hdr">🏰 Dungeon List</div>
+      <div id="dun-wrap"></div>
+      <button class="btn-add" onclick="addDungeon()">+ Add Dungeon</button>
     </div>
   </div>
 
@@ -433,7 +400,7 @@ function onMADate(){
 // ═══════════════════════════════════════════════════
 // DYNAMIC ROWS
 // ═══════════════════════════════════════════════════
-let _tldr=0, _comp=0, _recipe=0, _cash=0, _pkg=0, _dn=0, _gb=0;
+let _tldr=0, _comp=0, _dun=0, _cash=0, _pkg=0, _dn=0, _gb=0;
 const _pkgItem = {};
 
 function addTldr(k='',val=''){
@@ -460,14 +427,34 @@ function addComp(item='',dur='Permanent',qty='1',special=false){
   tb.appendChild(tr);
 }
 
-function addRecipe(item='',qty='1'){
-  const id=++_recipe;
-  const tb=$('recipe-body');
-  const tr=document.createElement('tr'); tr.id='rr'+id;
-  tr.innerHTML=`<td><input type="text" value="${esc(item)}" placeholder="Ingredient" oninput="sched()"></td>
-<td><input type="number" value="${qty}" style="width:52px" oninput="sched()"></td>
-<td><button class="btn-del" onclick="$('rr${id}').remove();sched()">✕</button></td>`;
-  tb.appendChild(tr);
+function addDungeon(img='', name='', loc='', entry=''){
+  const id = ++_dun;
+  const w = $('dun-wrap');
+  const d = document.createElement('div');
+  d.id = 'du'+id;
+  d.className = 'pkg-block';
+  d.style.marginBottom = '9px';
+  d.innerHTML = `
+<div class="pkg-block-head">
+  <span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px">Dungeon #${id}</span>
+  <button class="btn-del" onclick="$('du${id}').remove();sched()">Remove</button>
+</div>
+<div class="field"><label>🖼️ Dungeon Image URL</label>
+  <input type="url" value="${esc(img)}" placeholder="https://…" oninput="sched()" id="di${id}">
+</div>
+<div class="field"><label>Dungeon Name</label>
+  <input type="text" value="${esc(name)}" placeholder="e.g., Celestia" oninput="sched()" id="dn${id}">
+</div>
+<div class="frow">
+  <div class="field"><label>Location</label>
+    <input type="text" value="${esc(loc)}" placeholder="e.g., Port Lux → Warp Portal" oninput="sched()" id="dl${id}">
+  </div>
+  <div class="field"><label>Entry Item</label>
+    <input type="text" value="${esc(entry)}" placeholder="e.g., Celestia Key" oninput="sched()" id="de${id}">
+  </div>
+</div>`;
+  w.appendChild(d);
+  sched();
 }
 
 function addCash(item='',dur='Permanent',amt='1',trade='yes',limit='-',fg='0'){
@@ -712,96 +699,42 @@ function generateHTML(){
     // MESA: add PatchUpdate label above dungeon block
     if(cfg.dungeonLabel) html+=`<p><img src="${cfg.dungeonLabel}" width="400" style="display:block;margin-bottom:14px"></p>`;
 
-    const dn   = v('f_dname');
-    const dmap = v('f_dmap');
-    const dbossImg = v('f_dbossimg');
-    const dnpcImg  = v('f_dnpcimg');
-    const dbossName = v('f_dbossname');
-    const dbossDesc = v('f_dbossdesc');
-    const dnpcName  = v('f_dnpcname');
-    const dnpcPos   = v('f_dnpcpos');
-    const dresult   = v('f_dresult');
-    const dresdesc  = v('f_dresdesc');
+    // Collect dungeon rows
+    const dunRows = [...($('dun-wrap')?.children||[])].map(d=>{
+      const id = d.id.replace('du','');
+      return {
+        img:   $(`di${id}`)?.value.trim()||'',
+        name:  $(`dn${id}`)?.value.trim()||'',
+        loc:   $(`dl${id}`)?.value.trim()||'',
+        entry: $(`de${id}`)?.value.trim()||'',
+      };
+    }).filter(r=>r.name||r.img);
 
-    const recRows = [...$('recipe-body').children].map(tr=>{
-      const ins=tr.querySelectorAll('input');
-      return {item:ins[0]?.value.trim(),qty:ins[1]?.value.trim()};
-    }).filter(r=>r.item);
+    if(dunRows.length){
+      dunRows.forEach(r=>{
+        html+=`<table style="width:100%;border-collapse:collapse;margin-bottom:14px;background:#0d111e;border:1px solid #1c2840;border-radius:8px;overflow:hidden">
+<tbody><tr style="vertical-align:top">`;
 
-    html+=`<div style="text-align:center;padding:14px 0 8px">
-  <div style="display:inline-flex;align-items:center;gap:10px;border:2px solid #ff4455;border-radius:10px;padding:10px 24px;background:#12050a">
-    <span style="font-size:22px">☠️</span>
-    <div>
-      <div style="font-size:11px;color:#ff4455;font-weight:700;letter-spacing:3px;text-transform:uppercase">NEW DUNGEON</div>
-      <div style="font-size:22px;font-weight:900;color:#eef2ff;letter-spacing:1px">${esc(dn)}</div>
-    </div>
-    <span style="font-size:22px">☠️</span>
-  </div>
-</div>`;
+        // Left: image
+        if(r.img){
+          html+=`<td style="width:200px;padding:0;vertical-align:top">
+  <img src="${esc(r.img)}" style="width:200px;height:140px;object-fit:cover;display:block;border-radius:8px 0 0 8px">
+</td>`;
+        }
 
-    html+=`<table style="width:66%;border-collapse:collapse;margin:14px auto" border="1"><tbody>`;
-    const infoRows=[
-      ['⚔️ Type',         v('f_dtype')],
-      ['📊 Level Required',v('f_dlevel')],
-      ['🗝️ Entry Key',     v('f_dkey')],
-      ['👥 Party Size',    v('f_dparty')],
-      ['⏱️ Cooldown',      v('f_dcool')],
-    ];
-    infoRows.forEach(([lbl,val])=>{
-      html+=`<tr>
-  <td style="padding:8px 12px;background:#0a0d16;border:1px solid #1c2840;color:#8898b8;font-size:12px;font-weight:600;width:35%">${esc(lbl)}</td>
-  <td style="padding:8px 12px;background:#0d111e;border:1px solid #1c2840;color:#ccd6f0;font-size:13px">${esc(val)}</td>
-</tr>`;
-    });
-    html+=`</tbody></table>`;
+        // Right: info
+        html+=`<td style="padding:14px 18px;vertical-align:top">
+  <div style="font-size:17px;font-weight:800;color:#eef2ff;margin-bottom:10px;letter-spacing:.5px">🏰 ${esc(r.name)}</div>
+  <table style="border-collapse:collapse">
+    <tbody>`;
+        if(r.loc)   html+=`<tr><td style="padding:3px 12px 3px 0;font-size:11px;font-weight:700;color:#8898b8;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap">📍 Location</td><td style="padding:3px 0;font-size:13px;color:#ccd6f0">${esc(r.loc)}</td></tr>`;
+        if(r.entry) html+=`<tr><td style="padding:3px 12px 3px 0;font-size:11px;font-weight:700;color:#8898b8;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap">🗝️ Entry Item</td><td style="padding:3px 0"><span style="background:rgba(${accentRgb},.12);color:${accent};border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700">${esc(r.entry)}</span></td></tr>`;
+        html+=`    </tbody>
+  </table>
+</td>`;
 
-    const dloc=v('f_dloc');
-    if(dloc) html+=`<p style="text-align:center;margin:12px 0 6px;font-size:14px;font-weight:700;color:#f0c040">📌 ${esc(dloc)}</p>`;
-    if(dmap)  html+=`<p style="text-align:center;margin:8px 0 14px"><img src="${esc(dmap)}" style="max-width:520px;width:100%;border-radius:8px;border:1px solid #1c2840"></p>`;
-
-    // Boss
-    if(dbossName){
-      html+=`<p style="text-align:center;margin:18px 0 6px"><span style="font-size:14px;font-weight:800;color:#ff4455;letter-spacing:2px;text-transform:uppercase">☠️ BOSS MONSTERS ☠️</span></p>`;
-      if(dbossImg) html+=`<p style="text-align:center;margin:8px 0"><img src="${esc(dbossImg)}" style="max-width:600px;max-height:380px;width:100%;border-radius:8px;border:1px solid #1c2840;object-fit:contain"></p>`;
-      html+=`<div style="border:1px solid #2a0d12;border-left:4px solid #ff4455;border-radius:8px;padding:13px 17px;background:#0e0509;margin:10px 0">
-  <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:4px">${esc(dbossName)}</div>
-  <div style="font-size:13px;color:#8898b8;line-height:1.6">${nl2br(dbossDesc)}</div>
-</div>`;
-    }
-
-    // NPC
-    if(dnpcName){
-      html+=`<div style="display:flex;align-items:center;gap:14px;background:#0d111e;border:1px solid #1c2840;border-radius:8px;padding:13px 17px;margin:10px 0">`;
-      if(dnpcImg) html+=`<img src="${esc(dnpcImg)}" style="max-width:200px;border-radius:6px;flex-shrink:0">`;
-      html+=`<div>
-    <div style="font-size:10px;color:#8898b8;font-weight:700;text-transform:uppercase;letter-spacing:1px">NPC</div>
-    <div style="font-size:15px;font-weight:700;color:#eef2ff;margin:4px 0">${esc(dnpcName)}</div>
-    <div style="font-size:12px;color:${accent}">📍 ${esc(dnpcPos)}</div>
-  </div></div>`;
-    }
-
-    // Recipe
-    if(recRows.length || dresult){
-      let cells='';
-      recRows.forEach((r,i)=>{
-        cells+=`<td style="padding:8px 10px;border:1px solid #1c2840;font-size:12px;color:#ccd6f0;text-align:center;vertical-align:middle">
-    <div style="font-weight:600">${esc(r.item)}</div>
-    <div style="font-size:11px;color:#8898b8">×${esc(r.qty)}</div>
-  </td>`;
-        if(i<recRows.length-1) cells+=`<td style="font-size:18px;color:#8898b8;text-align:center;vertical-align:middle;padding:4px 5px">+</td>`;
+        html+=`</tr></tbody></table>`;
       });
-      if(cells) cells+=`<td style="font-size:18px;color:#8898b8;text-align:center;vertical-align:middle;padding:4px 5px;font-weight:700">=</td>`;
-      cells+=`<td style="padding:8px 14px;border:2px solid #f0c040;border-radius:6px;font-size:12px;color:#f0c040;text-align:center;vertical-align:middle;font-weight:700;background:#1a1200">
-    <div>${esc(dresult)}</div>
-    ${dresdesc?`<div style="font-size:10px;font-weight:400;color:#8898b8;margin-top:3px">${esc(dresdesc)}</div>`:''}
-  </td>`;
-
-      html+=`<div style="border:2px solid #1c2840;border-radius:8px;overflow:hidden;margin:14px 0">
-  <div style="background:#12182e;padding:8px 14px;font-weight:700;color:#f0c040;font-size:13px;text-align:center;border-bottom:1px solid #1c2840">✨ ${esc(dn)} Craft Recipe</div>
-  <div style="padding:14px;background:#0a0d16;overflow-x:auto">
-    <table style="border-collapse:collapse;margin:0 auto;min-width:280px"><tbody><tr>${cells}</tr></tbody></table>
-  </div>
-</div>`;
     }
   }
 
