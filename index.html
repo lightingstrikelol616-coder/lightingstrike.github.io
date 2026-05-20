@@ -101,6 +101,12 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
 .pkg-block{border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:9px}
 .pkg-block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 
+/* ── Mode Tabs ── */
+.mode-tabs{display:flex;gap:3px;background:#060810;border-radius:6px;padding:3px}
+.mode-tab{padding:4px 14px;border-radius:4px;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;transition:all .2s;color:var(--muted);background:transparent}
+.mode-tab.active{background:var(--accent);color:#060810}
+.mode-tab:hover:not(.active){background:rgba(255,255,255,.06);color:var(--text)}
+
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#1c2840;border-radius:3px}
@@ -112,7 +118,13 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
 
 <!-- ═══ HEADER ═══ -->
 <header class="app-header">
-  <div class="app-title">🎮 PCSEA Patch Note Editor</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="app-title">🎮 Patch Note Editor</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="pcsea" onclick="setMode('pcsea')">PCSEA</button>
+      <button class="mode-tab" data-mode="mesa" onclick="setMode('mesa')">MESA</button>
+    </div>
+  </div>
   <div class="header-actions">
     <button class="btn-secondary" onclick="updatePreview()">🔄 Refresh</button>
     <button class="btn-primary" onclick="copyForumHTML()">📋 Copy Forum HTML</button>
@@ -318,7 +330,7 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
 
 <!-- ─── RIGHT: PREVIEW ─── -->
 <div class="preview-panel">
-  <div class="preview-bar"><div class="preview-dot"></div>LIVE PREVIEW</div>
+  <div class="preview-bar"><div class="preview-dot"></div>LIVE PREVIEW &nbsp;—&nbsp; <span id="mode-label" style="color:var(--accent)">PCSEA</span></div>
   <div class="preview-content">
     <div id="preview-out" style="max-width:780px;margin:0 auto;"></div>
   </div>
@@ -495,15 +507,52 @@ function addGiftbox(txt=''){
 }
 
 // ═══════════════════════════════════════════════════
+// MODE CONFIG
+// ═══════════════════════════════════════════════════
+const MODE_CONFIG = {
+  pcsea: {
+    name: 'PCSEA',
+    accent: '#00c8a0',
+    accentRgb: '0,200,160',
+    cabalBarUrl: 'https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp',
+    serviceOutageLabel: 'https://storage-web-th.combocabal.com/contents/Service%20Outage-1733221510.png',
+    cashShopLabel: 'https://storage-web-sea.combocabal.com/contents/Cash%20Shop-1744085065.png',
+    devNoteLabel: 'https://storage-web-sea.combocabal.com/contents/Dev%20Note-1743666249.png',
+    dungeonLabel: null,
+    inGameEventLabel: null,
+  },
+  mesa: {
+    name: 'MESA',
+    accent: '#1a9fff',
+    accentRgb: '26,159,255',
+    cabalBarUrl: 'https://storage.combocabalm.com/contents/CABAL%20Bar-1757171152.webp',
+    serviceOutageLabel: null,
+    cashShopLabel: 'https://storage-web-sea.combocabalm.com/contents/Label%20Patch%20Note%2013%20may-1778562448.png',
+    devNoteLabel: 'https://storage-web-sea.combocabalm.com/contents/DevNote-1736933448.png',
+    dungeonLabel: 'https://storage.combocabalm.com/contents/PatchUpdate-1717484581.png',
+    inGameEventLabel: 'https://storage-web-sea.combocabalm.com/contents/InGameEvent-1736917585.png',
+  }
+};
+let currentMode = 'pcsea';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === mode);
+  });
+  document.documentElement.style.setProperty('--accent', MODE_CONFIG[mode].accent);
+  $('mode-label').textContent = MODE_CONFIG[mode].name;
+  updatePreview();
+}
+
+// ═══════════════════════════════════════════════════
 // HTML GENERATION
 // ═══════════════════════════════════════════════════
 
-const CABAL_BAR = `<p style="text-align:center;margin:20px 0"><img src="https://storage-web-th.combocabal.com/contents/CABAL%20Bar-1757740904.webp" width="500" style="display:inline-block;opacity:.75"></p>`;
-
-function devNoteBlock(num, title, bodyHtml){
+function devNoteBlock(num, title, bodyHtml, accent){
   return `<table style="width:100%;border-collapse:collapse;margin-bottom:18px"><tbody><tr style="vertical-align:top">
 <td style="width:34px;padding:0 10px 0 0;vertical-align:top;padding-top:1px">
-  <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#00c8a0;color:#060810;font-weight:700;text-align:center;line-height:26px;font-size:13px">${num}</span>
+  <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:${accent};color:#060810;font-weight:700;text-align:center;line-height:26px;font-size:13px">${num}</span>
 </td>
 <td style="vertical-align:top">
   <div style="font-weight:700;color:#eef2ff;font-size:14px;margin-bottom:6px">${esc(title)}</div>
@@ -513,6 +562,12 @@ function devNoteBlock(num, title, bodyHtml){
 }
 
 function generateHTML(){
+  // ── Mode config ──
+  const cfg = MODE_CONFIG[currentMode];
+  const accent = cfg.accent;
+  const accentRgb = cfg.accentRgb;
+  const CABAL_BAR = `<p style="text-align:center;margin:20px 0"><img src="${cfg.cabalBarUrl}" width="500" style="display:inline-block;opacity:.75"></p>`;
+
   const BORDER = 'border:1px solid #1c2840';
   const BOX    = `${BORDER};border-radius:8px;padding:20px 22px;background:#0d111e`;
   const LABEL_TOP = 'display:block;border-radius:8px 8px 0 0';
@@ -536,7 +591,7 @@ function generateHTML(){
 
   // ─ HERO ─
   html += `<p style="text-align:center;margin-bottom:6px">
-  <span style="background:#1c2840;color:#00c8a0;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:3px 14px;border-radius:4px">PATCH NOTE · ${esc(dlabel)}</span>
+  <span style="background:#1c2840;color:${accent};font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:3px 14px;border-radius:4px">PATCH NOTE · ${esc(dlabel)}</span>
 </p>
 <div style="text-align:center;padding:16px 0 12px">
   <div style="font-size:28px;font-weight:800;color:#eef2ff;letter-spacing:1px">${esc(title)}</div>
@@ -576,8 +631,8 @@ function generateHTML(){
   if(compRows.length){
     let rows='';
     compRows.forEach(r=>{
-      const bg=r.special?'#2a1a00':'#0a1a12';
-      const col=r.special?'#f0c040':'#00c8a0';
+      const bg=r.special?'#2a1a00':`rgba(${accentRgb},.08)`;
+      const col=r.special?'#f0c040':accent;
       rows+=`<tr>
   <td style="padding:7px 12px;color:#ccd6f0;font-size:13px;border:1px solid #1c2840">${esc(r.item)}</td>
   <td style="padding:7px 12px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.dur)}</td>
@@ -599,16 +654,23 @@ function generateHTML(){
 
   const compNote = v('f_compnote');
 
-  html += `<p><img src="https://storage-web-th.combocabal.com/contents/Service%20Outage-1733221510.png" width="400" style="${LABEL_TOP}"></p>
-<div style="${BOX_BTM}">
+  // Service Outage label — PCSEA has image, MESA uses text header
+  if(cfg.serviceOutageLabel){
+    html += `<p><img src="${cfg.serviceOutageLabel}" width="400" style="${LABEL_TOP}"></p>
+<div style="${BOX_BTM}">`;
+  } else {
+    html += `<div style="${BOX}">
+  <div style="font-size:13px;font-weight:700;color:${accent};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">⏰ MAINTENANCE</div>`;
+  }
+  html += `
   <div style="font-size:13px;color:#8898b8;margin-bottom:10px">The server will be under maintenance during the following time:</div>
   <div style="background:#0a0d16;border:1px solid #1c2840;border-radius:6px;padding:11px 16px;display:inline-block;margin-bottom:14px">
     <span style="color:#ccd6f0;font-weight:600;font-size:13px">🗓️ ${esc(maFormatted)}</span>
     <span style="color:#8898b8;margin:0 8px">|</span>
-    <span style="color:#00c8a0;font-weight:600;font-size:13px">${esc(maStart)} – ${esc(maEnd)} (GMT+8)</span>
+    <span style="color:${accent};font-weight:600;font-size:13px">${esc(maStart)} – ${esc(maEnd)} (GMT+8)</span>
   </div>
   ${compTableHtml}
-  ${compNote?`<div style="background:rgba(0,200,160,.06);border:1px solid rgba(0,200,160,.2);border-radius:6px;padding:9px 14px;margin-top:10px;font-size:12px;color:#8898b8">ℹ️ ${esc(compNote)}</div>`:''}
+  ${compNote?`<div style="background:rgba(${accentRgb},.06);border:1px solid rgba(${accentRgb},.2);border-radius:6px;padding:9px 14px;margin-top:10px;font-size:12px;color:#8898b8">ℹ️ ${esc(compNote)}</div>`:''}
 </div>`;
 
   // ─ DUNGEON ─
@@ -616,6 +678,9 @@ function generateHTML(){
     html += CABAL_BAR;
     const dheaderImg = v('f_dheaderimg');
     if(dheaderImg) html+=`<p style="margin:0 0 10px 0"><img src="${esc(dheaderImg)}" style="width:100%;max-width:780px;display:block;border-radius:8px"></p>`;
+    // MESA: add PatchUpdate label above dungeon block
+    if(cfg.dungeonLabel) html+=`<p><img src="${cfg.dungeonLabel}" width="400" style="display:block;margin-bottom:14px"></p>`;
+
     const dn   = v('f_dname');
     const dmap = v('f_dmap');
     const dbossImg = v('f_dbossimg');
@@ -680,7 +745,7 @@ function generateHTML(){
       html+=`<div>
     <div style="font-size:10px;color:#8898b8;font-weight:700;text-transform:uppercase;letter-spacing:1px">NPC</div>
     <div style="font-size:15px;font-weight:700;color:#eef2ff;margin:4px 0">${esc(dnpcName)}</div>
-    <div style="font-size:12px;color:#00c8a0">📍 ${esc(dnpcPos)}</div>
+    <div style="font-size:12px;color:${accent}">📍 ${esc(dnpcPos)}</div>
   </div></div>`;
     }
 
@@ -731,19 +796,19 @@ function generateHTML(){
   <td style="padding:7px 10px;color:#ccd6f0;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.amt)}</td>
   <td style="padding:7px 10px;color:${tc};font-size:12px;text-align:center;font-weight:600;border:1px solid #1c2840">${r.trade==='yes'?'Yes':'No'}</td>
   <td style="padding:7px 10px;color:#8898b8;font-size:12px;text-align:center;border:1px solid #1c2840">${esc(r.limit)}</td>
-  <td style="padding:7px 10px;color:#1afff9;font-size:12px;text-align:center;font-weight:600;border:1px solid #1c2840">${esc(r.fg)}</td>
+  <td style="padding:7px 10px;color:${accent};font-size:12px;text-align:center;font-weight:600;border:1px solid #1c2840">${esc(r.fg)}</td>
 </tr>`;
       });
       cashTbl=`<table style="width:97.679%;border-collapse:collapse;margin:14px 0" border="1">
 <thead>
-  <tr style="background:#1a1a1a"><td colspan="6" style="padding:8px 12px;color:#1afff9;font-weight:700;font-size:13px;text-align:center;border:1px solid #2a3850">${esc(cashTitle)}</td></tr>
+  <tr style="background:#1a1a1a"><td colspan="6" style="padding:8px 12px;color:${accent};font-weight:700;font-size:13px;text-align:center;border:1px solid #2a3850">${esc(cashTitle)}</td></tr>
   <tr style="background:#1a1a1a">
     <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:left;border:1px solid #2a3850">Items</th>
     <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Duration</th>
     <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Amount</th>
     <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Trade</th>
     <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:center;border:1px solid #2a3850">Limit</th>
-    <th style="padding:7px 10px;color:#1afff9;font-size:11px;text-align:center;border:1px solid #2a3850">FG</th>
+    <th style="padding:7px 10px;color:${accent};font-size:11px;text-align:center;border:1px solid #2a3850">FG</th>
   </tr>
 </thead>
 <tbody>${rows}</tbody>
@@ -776,7 +841,7 @@ function generateHTML(){
       pkgHtml+=`<table style="width:97.679%;border-collapse:collapse;margin:14px 0" border="1">
 <thead>
   <tr style="background:#1a1a1a"><td colspan="4" style="padding:8px 12px;color:#fbeeb8;font-weight:700;font-size:13px;text-align:center;border:1px solid #2a3850">
-    📦 ${esc(pname)} &nbsp;|&nbsp; <span style="color:#1afff9">${esc(pprice)} FG</span> &nbsp;|&nbsp; <span style="color:#8898b8;font-size:11px">Limit: ${esc(plimit)}</span>
+    📦 ${esc(pname)} &nbsp;|&nbsp; <span style="color:${accent}">${esc(pprice)} FG</span> &nbsp;|&nbsp; <span style="color:#8898b8;font-size:11px">Limit: ${esc(plimit)}</span>
   </td></tr>
   <tr style="background:#1a1a1a">
     <th style="padding:7px 10px;color:#fbeeb8;font-size:11px;text-align:left;border:1px solid #2a3850">Items</th>
@@ -789,7 +854,7 @@ function generateHTML(){
 </table>`;
     });
 
-    html+=`<p><img src="https://storage-web-sea.combocabal.com/contents/Cash%20Shop-1744085065.png" width="400" style="${LABEL_TOP}"></p>
+    html+=`<p><img src="${cfg.cashShopLabel}" width="400" style="${LABEL_TOP}"></p>
 <div style="${BOX_BTM}">
   ${cashTbl}${pkgHtml}
 </div>`;
@@ -800,15 +865,21 @@ function generateHTML(){
     html += CABAL_BAR;
     const evHeaderImg=v('f_evheaderimg');
     if(evHeaderImg) html+=`<p style="margin:0 0 10px 0"><img src="${esc(evHeaderImg)}" style="width:100%;max-width:780px;display:block;border-radius:8px"></p>`;
-    const en=v('f_evname'), ed=v('f_evdates'), edesc=v('f_evdesc'), elink=v('f_evlink');
-    html+=`<p style="text-align:center;margin:6px 0">
+    // MESA: use InGameEvent label image; PCSEA: use text chip
+    if(cfg.inGameEventLabel){
+      html+=`<p><img src="${cfg.inGameEventLabel}" width="400" style="${LABEL_TOP}"></p>`;
+    } else {
+      html+=`<p style="text-align:center;margin:6px 0">
   <span style="background:#1c2840;color:#f0c040;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:4px">🎮 IN-GAME EVENT</span>
-</p>
-<div style="${BOX};margin-top:8px">
+</p>`;
+    }
+    const en=v('f_evname'), ed=v('f_evdates'), edesc=v('f_evdesc'), elink=v('f_evlink');
+    const evBoxStyle = cfg.inGameEventLabel ? BOX_BTM : `${BOX};margin-top:8px`;
+    html+=`<div style="${evBoxStyle}">
   <div style="font-size:18px;font-weight:800;color:#eef2ff;margin-bottom:6px">${esc(en)}</div>
-  ${ed?`<div style="font-size:12px;color:#00c8a0;margin-bottom:10px;font-weight:600">📅 ${esc(ed)}</div>`:''}
+  ${ed?`<div style="font-size:12px;color:${accent};margin-bottom:10px;font-weight:600">📅 ${esc(ed)}</div>`:''}
   <div style="font-size:13px;color:#ccd6f0;line-height:1.8">${nl2br(edesc)}</div>
-  ${elink?`<p style="margin-top:12px"><a href="${esc(elink)}" target="_blank" style="color:#00c8a0;font-weight:600;font-size:13px">🔗 More Details →</a></p>`:''}
+  ${elink?`<p style="margin-top:12px"><a href="${esc(elink)}" target="_blank" style="color:${accent};font-weight:600;font-size:13px">🔗 More Details →</a></p>`:''}
 </div>`;
   }
 
@@ -836,7 +907,7 @@ function generateHTML(){
   ${pt?`<div style="font-size:17px;font-weight:800;color:#eef2ff;margin-bottom:8px">${esc(pt)}</div>`:''}
   ${pd?`<div style="font-size:13px;color:#ccd6f0;line-height:1.8;margin-bottom:10px">${nl2br(pd)}</div>`:''}
   ${ph?`<div style="background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.3);border-radius:6px;padding:9px 14px;margin-bottom:12px;font-size:13px;color:#f0c040;font-weight:600">⚡ ${esc(ph)}</div>`:''}
-  ${pl?`<p style="margin-bottom:14px"><a href="${esc(pl)}" target="_blank" style="color:#00c8a0;font-weight:600;font-size:13px">🔗 More Details →</a></p>`:''}
+  ${pl?`<p style="margin-bottom:14px"><a href="${esc(pl)}" target="_blank" style="color:${accent};font-weight:600;font-size:13px">🔗 More Details →</a></p>`:''}
   ${bannersHtml}
 </div>`;
   }
@@ -854,8 +925,8 @@ function generateHTML(){
 ⚠️ Note: If players have reached the Celestial rank after the cutoff time,<br>
 please wait for the next title distribution during the next server maintenance.<br>
 <br>
-🔎 Check your rank: 【 <a href="https://sea-member.combocabal.com/en/dashboard" target="_blank" style="color:#00c8a0;font-weight:600">Click Here →</a> 】<br>
-📜 Check the stats of your received title: 【 <a href="https://cabalpc.com/Celestial-Member-Privilege-en" target="_blank" style="color:#00c8a0;font-weight:600">Click Here →</a> 】`;
+🔎 Check your rank: 【 <a href="https://sea-member.combocabal.com/en/dashboard" target="_blank" style="color:${accent};font-weight:600">Click Here →</a> 】<br>
+📜 Check the stats of your received title: 【 <a href="https://cabalpc.com/Celestial-Member-Privilege-en" target="_blank" style="color:${accent};font-weight:600">Click Here →</a> 】`;
 
   const addNotes = [...$('devnote-wrap').children].map(d=>{
     const ta=d.querySelector('textarea');
@@ -867,12 +938,12 @@ please wait for the next title distribution during the next server maintenance.<
     return inp?inp.value.trim():'';
   }).filter(t=>t);
 
-  let devNoteContent = devNoteBlock(1,'In-Game Title Distribution to Players', devNote1Body);
+  let devNoteContent = devNoteBlock(1,'In-Game Title Distribution to Players', devNote1Body, accent);
   addNotes.forEach((note,i)=>{
     const lines=note.split('\n');
     const head=lines[0];
     const rest=lines.slice(1).join('\n');
-    devNoteContent+=devNoteBlock(i+2, head, rest?nl2br(rest):'');
+    devNoteContent+=devNoteBlock(i+2, head, rest?nl2br(rest):'', accent);
   });
 
   let giftHtml='';
@@ -885,7 +956,7 @@ please wait for the next title distribution during the next server maintenance.<
 </div>`;
   }
 
-  html+=`<p><img src="https://storage-web-sea.combocabal.com/contents/Dev%20Note-1743666249.png" width="400" style="${LABEL_TOP}"></p>
+  html+=`<p><img src="${cfg.devNoteLabel}" width="400" style="${LABEL_TOP}"></p>
 <div style="${BOX_BTM}">
   ${devNoteContent}
   ${giftHtml}
