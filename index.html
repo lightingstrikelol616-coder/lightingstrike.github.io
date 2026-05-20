@@ -297,10 +297,41 @@ textarea{resize:vertical;min-height:64px;line-height:1.55}
       <div class="field"><label>Link (optional)</label><input type="url" id="f_promolink" placeholder="https://..." oninput="sched()"></div>
       <div class="divider"></div>
       <div class="sub-hdr">🏪 Shop Banners</div>
-      <div class="check-grp">
-        <label><input type="checkbox" id="f_bmain" checked onchange="sched()"><span>Main Shop</span></label>
-        <label><input type="checkbox" id="f_bbonus" checked onchange="sched()"><span>Bonus Shop</span></label>
-        <label><input type="checkbox" id="f_bcel" checked onchange="sched()"><span>Celestial</span></label>
+
+      <!-- Main Shop -->
+      <div class="pkg-block" style="margin-bottom:9px">
+        <div class="pkg-block-head">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;color:var(--white);margin-bottom:0">
+            <input type="checkbox" id="f_bmain" checked onchange="sched()" style="accent-color:var(--accent);width:13px;height:13px"> 🏪 Main Shop
+          </label>
+        </div>
+        <div class="field"><label>Banner Image URL</label><input type="url" id="f_bmain_img" placeholder="https://… (ทิ้งว่างเพื่อใช้ค่า default)" oninput="sched()"></div>
+        <div class="field"><label>Shop Link URL</label><input type="url" id="f_bmain_link" placeholder="https://cabalpc.com/main-shop-en" oninput="sched()"></div>
+        <div class="field" style="margin-bottom:0"><label>Highlight Note</label><input type="text" id="f_bmain_note" placeholder="e.g., New items this patch!" oninput="sched()"></div>
+      </div>
+
+      <!-- Bonus Shop -->
+      <div class="pkg-block" style="margin-bottom:9px">
+        <div class="pkg-block-head">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;color:var(--white);margin-bottom:0">
+            <input type="checkbox" id="f_bbonus" checked onchange="sched()" style="accent-color:var(--accent);width:13px;height:13px"> 🎁 Bonus Shop
+          </label>
+        </div>
+        <div class="field"><label>Banner Image URL</label><input type="url" id="f_bbonus_img" placeholder="https://… (ทิ้งว่างเพื่อใช้ค่า default)" oninput="sched()"></div>
+        <div class="field"><label>Shop Link URL</label><input type="url" id="f_bbonus_link" placeholder="https://cabalpc.com/bonus-shop-en" oninput="sched()"></div>
+        <div class="field" style="margin-bottom:0"><label>Highlight Note</label><input type="text" id="f_bbonus_note" placeholder="e.g., Limited time bonus items!" oninput="sched()"></div>
+      </div>
+
+      <!-- Celestial Shop -->
+      <div class="pkg-block" style="margin-bottom:0">
+        <div class="pkg-block-head">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;color:var(--white);margin-bottom:0">
+            <input type="checkbox" id="f_bcel" checked onchange="sched()" style="accent-color:var(--accent);width:13px;height:13px"> ✨ Celestial Shop
+          </label>
+        </div>
+        <div class="field"><label>Banner Image URL</label><input type="url" id="f_bcel_img" placeholder="https://… (ทิ้งว่างเพื่อใช้ค่า default)" oninput="sched()"></div>
+        <div class="field"><label>Shop Link URL</label><input type="url" id="f_bcel_link" placeholder="https://cabalpc.com/exclusive-shop-en" oninput="sched()"></div>
+        <div class="field" style="margin-bottom:0"><label>Highlight Note</label><input type="text" id="f_bcel_note" placeholder="e.g., Celestial exclusive rewards!" oninput="sched()"></div>
       </div>
     </div>
   </div>
@@ -891,13 +922,25 @@ function generateHTML(){
     const pt=v('f_promotitle'), pd=v('f_promodesc'), ph=v('f_promohighlight'), pl=v('f_promolink');
 
     const BANNERS=[
-      {id:'f_bmain', img:'https://storage-web-sea.combocabal.com/contents/Main_HeadBanner-1747112468-1757493199.webp', link:'https://cabalpc.com/main-shop-en'},
-      {id:'f_bbonus',img:'https://storage-web-sea.combocabal.com/contents/Bonus_HeadBanner-1747731107-1757499090.webp',link:'https://cabalpc.com/bonus-shop-en'},
-      {id:'f_bcel',  img:'https://storage-web-sea.combocabal.com/contents/Celestial_HeadBanner-1747731100-1757559779.webp',link:'https://cabalpc.com/exclusive-shop-en'},
+      {id:'f_bmain',
+       img:  v('f_bmain_img')  || 'https://storage-web-sea.combocabal.com/contents/Main_HeadBanner-1747112468-1757493199.webp',
+       link: v('f_bmain_link') || 'https://cabalpc.com/main-shop-en',
+       note: v('f_bmain_note')},
+      {id:'f_bbonus',
+       img:  v('f_bbonus_img')  || 'https://storage-web-sea.combocabal.com/contents/Bonus_HeadBanner-1747731107-1757499090.webp',
+       link: v('f_bbonus_link') || 'https://cabalpc.com/bonus-shop-en',
+       note: v('f_bbonus_note')},
+      {id:'f_bcel',
+       img:  v('f_bcel_img')  || 'https://storage-web-sea.combocabal.com/contents/Celestial_HeadBanner-1747731100-1757559779.webp',
+       link: v('f_bcel_link') || 'https://cabalpc.com/exclusive-shop-en',
+       note: v('f_bcel_note')},
     ];
     let bannersHtml='';
     BANNERS.forEach(b=>{
-      if(chk(b.id)) bannersHtml+=`<p style="margin:8px 0"><a href="${b.link}" target="_blank"><img src="${b.img}" style="width:100%;max-width:700px;display:block;border-radius:6px"></a></p>`;
+      if(chk(b.id)){
+        bannersHtml+=`<p style="margin:8px 0"><a href="${esc(b.link)}" target="_blank"><img src="${esc(b.img)}" style="width:100%;max-width:700px;display:block;border-radius:6px"></a></p>`;
+        if(b.note) bannersHtml+=`<div style="background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.25);border-radius:6px;padding:8px 14px;margin:2px 0 10px;font-size:12px;color:#f0c040;font-weight:600">⚡ ${esc(b.note)}</div>`;
+      }
     });
 
     html+=`<p style="text-align:center;margin:6px 0">
