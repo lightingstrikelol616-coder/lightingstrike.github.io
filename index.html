@@ -298,6 +298,9 @@ body {
 }
 .btn-ghost:hover { background: rgba(124,58,237,.18); border-color: #a78bfa; }
 </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div id="flash"></div>
@@ -753,34 +756,37 @@ function nextStage() {
 
 // ── GAME OVER ─────────────────────────────────────────
 
+// ── FIREBASE INIT ─────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCgNONNVhG0xLUC_LbmTC30-SZhN5Fy-Nc",
+  authDomain: "tosm-celestial-match.firebaseapp.com",
+  databaseURL: "https://tosm-celestial-match-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tosm-celestial-match",
+  storageBucket: "tosm-celestial-match.firebasestorage.app",
+  messagingSenderId: "857748443808",
+  appId: "1:857748443808:web:5542e7ebb5699b31a72fc5"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const LB_REF = db.ref('leaderboard');
+const LB_MAX = 20;
+
 // ── LEADERBOARD ───────────────────────────────────────
-const LB_KEY  = 'tosm_leaderboard';
-const LB_MAX  = 20;
-
-function loadLB() {
-  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
-  catch(e) { return []; }
-}
-
 function saveLBEntry(entry) {
-  const lb = loadLB();
-  lb.push(entry);
-  lb.sort((a,b) => b.score - a.score);
-  localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, LB_MAX)));
+  LB_REF.push(entry);
 }
 
-function renderLB() {
-  const lb   = loadLB();
-  const tbody = document.getElementById('lbBody');
+function buildLBRows(tbody, entries, currentScore, currentStage) {
   tbody.innerHTML = '';
-  if (!lb.length) {
+  if (!entries.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">ยังไม่มีข้อมูล เล่นเกมก่อนนะ! 🎮</td></tr>';
     return;
   }
   const rankIcon = ['👑','🥈','🥉'];
-  lb.forEach((e, i) => {
-    const isMe = player && e.aid === player.aid && e.name === player.name;
-    const tr   = document.createElement('tr');
+  entries.slice(0, LB_MAX).forEach((e, i) => {
+    const isMe = player && e.aid === player.aid && e.name === player.name
+              && currentScore !== undefined ? (e.score === currentScore && e.stage === currentStage) : false;
+    const tr = document.createElement('tr');
     if (isMe) tr.className = 'lb-my-row';
     const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const rankTxt = i < 3 ? rankIcon[i] : (i + 1);
@@ -797,6 +803,17 @@ function renderLB() {
   });
 }
 
+function renderLB() {
+  const tbody = document.getElementById('lbBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">กำลังโหลด... ⏳</td></tr>';
+  LB_REF.orderByChild('score').limitToLast(LB_MAX).once('value', snap => {
+    const entries = [];
+    snap.forEach(child => entries.push(child.val()));
+    entries.sort((a, b) => b.score - a.score);
+    buildLBRows(tbody, entries, undefined, undefined);
+  });
+}
+
 function showLB(fromGameOver = false) {
   document.getElementById('lbSub').textContent = fromGameOver
     ? 'ผลการเล่นบันทึกแล้ว! 🎉'
@@ -809,40 +826,16 @@ function hideLB() {
   document.getElementById('leaderboardScreen').classList.add('hidden');
 }
 
-function clearLB() {
-  if (!confirm('ล้างคะแนนทั้งหมดใช่ไหม?')) return;
-  localStorage.removeItem(LB_KEY);
-  renderLB();
-}
-
 
 function renderInlineLB() {
-  const lb    = loadLB();
   const tbody = document.getElementById('goLbBody');
   if (!tbody) return;
-  tbody.innerHTML = '';
-  if (!lb.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">ยังไม่มีข้อมูล</td></tr>';
-    return;
-  }
-  const rankIcon = ['👑','🥈','🥉'];
-  lb.slice(0, 5).forEach((e, i) => {
-    const isMe = player && e.aid === player.aid && e.name === player.name
-              && e.score === score && e.stage === stage;
-    const tr   = document.createElement('tr');
-    if (isMe) tr.className = 'lb-my-row';
-    const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    const rankTxt = i < 3 ? rankIcon[i] : (i + 1);
-    const d = new Date(e.date);
-    const dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().slice(-2)}`;
-    tr.innerHTML = `
-      <td class="lb-rank ${rankCls}">${rankTxt}</td>
-      <td><div class="lb-name">${e.name}${isMe ? ' ⭐' : ''}</div><div class="lb-aid">AID: ${e.aid}</div></td>
-      <td class="lb-stage">${e.stage}</td>
-      <td class="lb-score">${e.score.toLocaleString()}</td>
-      <td class="lb-date">${dateStr}</td>
-    `;
-    tbody.appendChild(tr);
+  tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">กำลังโหลด... ⏳</td></tr>';
+  LB_REF.orderByChild('score').limitToLast(LB_MAX).once('value', snap => {
+    const entries = [];
+    snap.forEach(child => entries.push(child.val()));
+    entries.sort((a, b) => b.score - a.score);
+    buildLBRows(tbody, entries.slice(0, 5), score, stage);
   });
 }
 
