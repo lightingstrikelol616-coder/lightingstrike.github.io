@@ -104,9 +104,9 @@ body {
   transform: rotateY(180deg);
   border: 2px solid transparent; padding: 6px 4px;
 }
-.char-img   { width: 135px; height: 135px; object-fit: contain; margin-bottom: 6px; image-rendering: auto; }
-.char-name  { font-size: .87rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
-.char-role  { font-size: .66rem; opacity: .6; margin-top: 3px; letter-spacing: .5px; }
+.char-img   { width: 162px; height: 162px; object-fit: contain; margin-bottom: 6px; image-rendering: auto; }
+.char-name  { font-size: 1.04rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.char-role  { font-size: .79rem; opacity: .6; margin-top: 3px; letter-spacing: .5px; }
 
 /* Matched */
 .card.done .front {
@@ -625,7 +625,7 @@ function renderGrid() {
   const spacers = rem === 0 ? 0 : cols - rem;
 
   const grid = document.getElementById('grid');
-  grid.style.gridTemplateColumns = `repeat(${cols}, 150px)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 180px)`;
   grid.style.width = 'fit-content';
   grid.style.maxWidth = '96vw';
   grid.innerHTML = '';
